@@ -1,0 +1,62 @@
+version: '3.4'
+
+x-common-service: &common-service
+  environment:
+    ENV: development
+    EXPOSURE_MONGO_URL: "mongodb://mongo:27017"
+    OTP_CACHE_REDIS_URL: "redis://otp_redis:6379/0"
+    ANALYTICS_BROKER_REDIS_URL: "redis://analytics_redis:6379/0"
+    CELERY_BROKER_REDIS_URL: "redis://celery_redis:6379/0"
+  depends_on:
+    - mongo
+    - otp_redis
+    - analytics_redis
+    - celery_redis
+
+x-common-build: &common-build
+  args:
+    API_PORT: 5000
+    SERVICE_DIR: immuni_exposure_ingestion
+  context: ../
+  dockerfile: ./common/Dockerfile
+
+services:
+
+  api:
+    <<: *common-service
+    image: api
+    ports:
+      - "5000:5000"
+    build:
+      <<: *common-build
+      target: api
+  worker:
+    <<: *common-service
+    image: worker
+    build:
+      <<: *common-build
+      target: worker
+  beat:
+    <<: *common-service
+    image: beat
+    build:
+      <<: *common-build
+      target: beat
+  celery_exporter:
+    image: ovalmoney/celery-exporter
+    environment:
+      CELERY_EXPORTER_BROKER_URL: "redis://celery_redis:6379/0"
+      CELERY_EXPORTER_NAMESPACE: "immuni"
+    command: --verbose
+    ports:
+      - "9540:9540"
+  mongo:
+    image: mongo:4.0.18-xenial
+    ports:
+      - "27017:27017"
+  otp_redis:
+    image: redis:5.0.9-alpine
+  analytics_redis:
+    image: redis:5.0.9-alpine
+  celery_redis:
+    image: redis:5.0.9-alpine

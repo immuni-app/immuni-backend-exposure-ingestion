@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "immuni-exposure-ingestion"
+version = "1.0.0"
+description = "Immuni microservice to ingest client keys and process them into batch files."
+authors = []
+
+[tool.poetry.dependencies]
+croniter = "^0.3.31"
+immuni-common = { path = "common", develop = true, extras = ["aioredis", "celery"] }
+protobuf = "^3.12.1"
+python = "^3.8"
+
+[tool.poetry.dev-dependencies]
+immuni-common-dev = { path = "common/dev", develop = true }
+responses = "^0.10.14"
+
+[tool.poetry.scripts]
+checks = "common.scripts:checks"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
