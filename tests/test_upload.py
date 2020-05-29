@@ -265,8 +265,19 @@ async def test_upload_keys_with_wrong_length(
     assert response.status == HTTPStatus.BAD_REQUEST.value
 
 
+async def test_upload_keys_with_missing_teks(
+    client: TestClient, otp: OtpData, auth_headers: Dict[str, str], upload_data: Dict,
+) -> None:
+    upload_data["teks"] = None
+
+    auth_headers.update(CONTENT_TYPE_HEADER)
+    response = await client.post("/v1/ingestion/upload", json=upload_data, headers=auth_headers)
+    assert response.status == HTTPStatus.BAD_REQUEST.value
+
+
 @pytest.mark.parametrize("include_infos", [True, False])
 @pytest.mark.parametrize("include_summaries", [True, False])
+@pytest.mark.parametrize("include_teks", [True, False])
 async def test_upload_otp_complete(
     client: TestClient,
     otp: OtpData,
@@ -274,6 +285,7 @@ async def test_upload_otp_complete(
     upload_data: Dict,
     include_infos: bool,
     include_summaries: bool,
+    include_teks: bool,
 ) -> None:
 
     otp_sha = sha256("12345".encode("utf-8")).hexdigest()
@@ -282,6 +294,8 @@ async def test_upload_otp_complete(
         upload_data["exposure_detection_summaries"][0]["exposure_info"] = []
     if not include_summaries:
         upload_data["exposure_detection_summaries"] = []
+    if not include_teks:
+        upload_data["teks"] = []
 
     auth_headers.update(CONTENT_TYPE_HEADER)
     response = await client.post("/v1/ingestion/upload", json=upload_data, headers=auth_headers,)
@@ -293,12 +307,17 @@ async def test_upload_otp_complete(
     upload = Upload.objects.first()
     assert upload.to_publish is True
     assert upload.symptoms_started_on == otp.symptoms_started_on
-    assert len(upload.keys) == 14
-    assert upload.keys[0].key_data == upload_data["teks"][0]["key_data"]
-    assert upload.keys[0].rolling_start_number == upload_data["teks"][0]["rolling_start_number"]
-    assert upload.keys[0].rolling_period == 144
-    assert upload.keys[1].key_data == upload_data["teks"][1]["key_data"]
-    assert upload.keys[1].rolling_start_number == upload_data["teks"][1]["rolling_start_number"]
+
+    if include_teks:
+        assert len(upload.keys) == 14
+        assert upload.keys[0].key_data == upload_data["teks"][0]["key_data"]
+        assert upload.keys[0].rolling_start_number == upload_data["teks"][0]["rolling_start_number"]
+        assert upload.keys[0].rolling_period == 144
+        assert upload.keys[1].key_data == upload_data["teks"][1]["key_data"]
+        assert upload.keys[1].rolling_start_number == upload_data["teks"][1]["rolling_start_number"]
+    else:
+        assert upload.keys == []
+
     assert await managers.analytics_redis.llen(config.ANALYTICS_QUEUE_KEY) == 1
     enqueued_message = await managers.analytics_redis.lpop(config.ANALYTICS_QUEUE_KEY)
     assert enqueued_message
