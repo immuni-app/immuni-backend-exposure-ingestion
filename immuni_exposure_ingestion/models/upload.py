@@ -32,7 +32,7 @@ class Upload(Document):
     """
 
     to_publish = BooleanField(default=True)
-    keys = EmbeddedDocumentListField(TemporaryExposureKey, required=True)
+    keys = EmbeddedDocumentListField(TemporaryExposureKey, required=False, default=[])
     symptoms_started_on = DateField(required=True)
 
     meta = {"indexes": ["to_publish"]}
