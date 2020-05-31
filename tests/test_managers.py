@@ -45,3 +45,8 @@ def test_celery_redis_failure() -> None:
         mock.return_value = None
         with raises(ImmuniException):
             managers.celery_redis
+
+
+async def test_teardown_on_uninitialized() -> None:
+    uninitialized_managers = Managers()
+    await uninitialized_managers.teardown()
