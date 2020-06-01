@@ -12,6 +12,7 @@
 #    along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import json
+from datetime import date
 from typing import List
 
 from immuni_common.models.dataclasses import ExposureDetectionSummary
@@ -21,13 +22,16 @@ from immuni_exposure_ingestion.core.managers import managers
 
 
 async def store_exposure_detection_summaries(
-    exposure_detection_summaries: List[ExposureDetectionSummary], province: str
+    exposure_detection_summaries: List[ExposureDetectionSummary],
+    province: str,
+    symptoms_started_on: date,
 ) -> None:
     """
     Store the given exposure detection summaries into the Analytics Redis.
 
     :param exposure_detection_summaries: the summaries to be stored.
     :param province: the province associated with the summaries.
+    :param symptoms_started_on: the day in which the symptoms first appeared.
     """
     await managers.analytics_redis.rpush(
         config.ANALYTICS_QUEUE_KEY,
@@ -36,6 +40,7 @@ async def store_exposure_detection_summaries(
                 version=1,
                 payload=dict(
                     province=province,
+                    symptoms_started_on=symptoms_started_on.isoformat(),
                     exposure_detection_summaries=ExposureDetectionSummarySchema().dump(
                         exposure_detection_summaries, many=True
                     ),
