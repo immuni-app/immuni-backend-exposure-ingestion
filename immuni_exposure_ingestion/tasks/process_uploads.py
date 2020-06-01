@@ -26,6 +26,11 @@ from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.helpers.lock import lock_concurrency
 from immuni_exposure_ingestion.helpers.risk_level import extract_keys_with_risk_level_from_upload
 from immuni_exposure_ingestion.models.upload import Upload
+from immuni_exposure_ingestion.monitoring.celery import (
+    BATCHES_CREATED,
+    KEYS_PROCESSED,
+    UPLOADS_ENQUEUED,
+)
 from immuni_exposure_ingestion.protobuf.helpers.generate_zip import batch_to_sdk_zip_file
 
 _LOGGER = logging.getLogger(__name__)
@@ -111,11 +116,16 @@ async def _process_uploads() -> None:
             batch_file.client_content = batch_to_sdk_zip_file(batch_file)
             batch_file.save()
             _LOGGER.info("Created new batch.", extra=dict(index=index, n_keys=n_keys))
+            BATCHES_CREATED.inc()
+            KEYS_PROCESSED.inc(len(keys))
 
         Upload.set_published(processed_uploads)
         _LOGGER.info(
             "Flagged uploads as published.", extra=dict(n_processed_uploads=len(processed_uploads))
         )
+
+        # Update the metrics..
+        UPLOADS_ENQUEUED.set(Upload.to_process().count())
 
         _LOGGER.info("Releasing lock.")
 

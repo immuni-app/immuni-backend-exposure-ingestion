@@ -38,8 +38,8 @@ from immuni_common.models.marshmallow.validators import TekListValidator
 from immuni_common.models.mongoengine.temporary_exposure_key import TemporaryExposureKey
 from immuni_common.models.swagger import HeaderImmuniContentTypeJson
 from immuni_exposure_ingestion.core import config
+from immuni_exposure_ingestion.helpers.api import track_check_otp, track_upload, validate_otp_token
 from immuni_exposure_ingestion.helpers.exposure_data import store_exposure_detection_summaries
-from immuni_exposure_ingestion.helpers.otp import validate_otp_token
 from immuni_exposure_ingestion.helpers.upload import (
     slow_down_request,
     validate_token_format,
@@ -53,6 +53,7 @@ from immuni_exposure_ingestion.models.swagger import (
 )
 from immuni_exposure_ingestion.models.swagger import Upload as UploadDoc
 from immuni_exposure_ingestion.models.upload import Upload
+from immuni_exposure_ingestion.monitoring.api import SUMMARIES_PROCESSED
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -104,6 +105,7 @@ bp = Blueprint("ingestion", url_prefix="ingestion")
 )
 @validate_token_format
 @cache(no_store=True)
+@track_upload
 async def upload(  # pylint: disable=too-many-arguments
     request: Request,
     province: str,
@@ -139,6 +141,7 @@ async def upload(  # pylint: disable=too-many-arguments
 
     _LOGGER.info("Created new upload.", extra=dict(n_teks=len(teks)))
 
+    SUMMARIES_PROCESSED.inc(len(exposure_detection_summaries))
     await store_exposure_detection_summaries(exposure_detection_summaries, province=province)
 
     return HTTPResponse(status=HTTPStatus.NO_CONTENT)
@@ -177,6 +180,7 @@ async def upload(  # pylint: disable=too-many-arguments
 @validate_token_format
 @slow_down_request
 @cache(no_store=True)
+@track_check_otp
 async def check_otp(request: Request, is_dummy: bool, padding: str) -> HTTPResponse:
     """
     Check the OTP validity, aka successfully enabled by the OTP Service.
