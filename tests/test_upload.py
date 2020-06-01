@@ -324,8 +324,10 @@ async def test_upload_otp_complete(
     content = json.loads(enqueued_message)
 
     assert content == dict(
-        version=1,
+        version=2,
         payload=dict(
-            province="AG", exposure_detection_summaries=upload_data["exposure_detection_summaries"],
+            province="AG",
+            symptoms_started_on=date.today().isoformat(),
+            exposure_detection_summaries=upload_data["exposure_detection_summaries"],
         ),
     )
