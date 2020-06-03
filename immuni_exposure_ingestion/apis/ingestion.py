@@ -38,7 +38,11 @@ from immuni_common.models.marshmallow.validators import TekListValidator
 from immuni_common.models.mongoengine.temporary_exposure_key import TemporaryExposureKey
 from immuni_common.models.swagger import HeaderImmuniContentTypeJson
 from immuni_exposure_ingestion.core import config
-from immuni_exposure_ingestion.helpers.api import track_check_otp, track_upload, validate_otp_token
+from immuni_exposure_ingestion.helpers.api import (
+    validate_otp_token,
+    monitor_upload,
+    monitor_check_otp,
+)
 from immuni_exposure_ingestion.helpers.exposure_data import store_exposure_detection_summaries
 from immuni_exposure_ingestion.helpers.upload import (
     slow_down_request,
@@ -105,7 +109,7 @@ bp = Blueprint("ingestion", url_prefix="ingestion")
 )
 @validate_token_format
 @cache(no_store=True)
-@track_upload
+@monitor_upload
 async def upload(  # pylint: disable=too-many-arguments
     request: Request,
     province: str,
@@ -180,7 +184,7 @@ async def upload(  # pylint: disable=too-many-arguments
 @validate_token_format
 @slow_down_request
 @cache(no_store=True)
-@track_check_otp
+@monitor_check_otp
 async def check_otp(request: Request, is_dummy: bool, padding: str) -> HTTPResponse:
     """
     Check the OTP validity, aka successfully enabled by the OTP Service.

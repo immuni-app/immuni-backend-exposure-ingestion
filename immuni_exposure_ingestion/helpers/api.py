@@ -47,7 +47,7 @@ async def validate_otp_token(otp_sha: str, delete: bool = False) -> OtpData:
     return OtpDataSchema().loads(data)
 
 
-def track_upload(f: Callable[..., Coroutine[Any, Any, HTTPResponse]]) -> Callable:
+def monitor_upload(f: Callable[..., Coroutine[Any, Any, HTTPResponse]]) -> Callable:
     """
     Utility function to track the metrics relative to the upload request.
     :param f: The upload function to decorate.
@@ -62,7 +62,6 @@ def track_upload(f: Callable[..., Coroutine[Any, Any, HTTPResponse]]) -> Callabl
             response = await f(*args, **kwargs)
             UPLOAD_REQUESTS.labels(dummy, province, response.status).inc()
         except ApiException as error:
-            # Increase the corresponding metric
             UPLOAD_REQUESTS.labels(dummy, province, error.status_code).inc()
             raise
         return response
@@ -70,7 +69,7 @@ def track_upload(f: Callable[..., Coroutine[Any, Any, HTTPResponse]]) -> Callabl
     return _wrapper
 
 
-def track_check_otp(f: Callable[..., Coroutine[Any, Any, HTTPResponse]]) -> Callable:
+def monitor_check_otp(f: Callable[..., Coroutine[Any, Any, HTTPResponse]]) -> Callable:
     """
     Utility function to track the metrics relative to the check-otp request.
     :param f: The check-otp function to decorate.
