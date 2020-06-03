@@ -2,10 +2,10 @@ from prometheus_client.metrics import Counter
 
 from immuni_common.monitoring.core import NAMESPACE, Subsystem
 
-# Note: We want to be able to monitor uploads / OTP request, separate them by province and also make sure
-# that there are not too many dummy requests.
-# For the detail level that we want to achieve, the currently existing metric "REQUESTS_LATENCY"
-# is insufficient, so we add more information through this metrics.
+# NOTE: To monitor uploads / OTP request, adding the dummy and province information is important.
+#  The currently existing metric "REQUESTS_LATENCY" is not enough, and adding such labels to all
+#  requests would be inappropriate, since meaningless for most of them.
+#  Dedicated metrics are added instead.
 
 CHECK_OTP_REQUESTS = Counter(
     namespace=NAMESPACE,
