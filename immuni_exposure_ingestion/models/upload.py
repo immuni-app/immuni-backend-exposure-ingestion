@@ -75,6 +75,6 @@ class Upload(Document):
         Delete all Uploads older than the given datetime.
 
         :param datetime_: the datetime to check against.
-        :return: the number of elements deleted.
+        :return: the number of deleted documents.
         """
         return cls.objects.filter(id__lte=ObjectId.from_datetime(datetime_)).delete()
