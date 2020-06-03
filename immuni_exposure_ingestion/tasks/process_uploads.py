@@ -27,7 +27,7 @@ from immuni_exposure_ingestion.helpers.lock import lock_concurrency
 from immuni_exposure_ingestion.helpers.risk_level import extract_keys_with_risk_level_from_upload
 from immuni_exposure_ingestion.models.upload import Upload
 from immuni_exposure_ingestion.monitoring.celery import (
-    BATCHES_CREATED,
+    BATCH_FILES_CREATED,
     KEYS_PROCESSED,
     UPLOADS_ENQUEUED,
 )
@@ -116,7 +116,7 @@ async def _process_uploads() -> None:
             batch_file.client_content = batch_to_sdk_zip_file(batch_file)
             batch_file.save()
             _LOGGER.info("Created new batch.", extra=dict(index=index, n_keys=n_keys))
-            BATCHES_CREATED.inc()
+            BATCH_FILES_CREATED.inc()
             KEYS_PROCESSED.inc(len(keys))
 
         Upload.set_published(processed_uploads)

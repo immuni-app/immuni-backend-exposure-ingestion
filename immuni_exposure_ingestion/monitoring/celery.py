@@ -9,11 +9,11 @@ KEYS_PROCESSED = Counter(
     documentation="Total number of keys processed.",
 )
 
-BATCHES_CREATED = Counter(
+BATCH_FILES_CREATED = Counter(
     namespace=NAMESPACE,
     subsystem=Subsystem.API.value,
     name="batches_created",
-    documentation="Total number of Batches created.",
+    documentation="Total number of created batches.",
 )
 
 UPLOADS_ENQUEUED = Gauge(
@@ -27,12 +27,12 @@ UPLOADS_DELETED = Counter(
     namespace=NAMESPACE,
     subsystem=Subsystem.API.value,
     name="uploads_deleted",
-    documentation="Total number of Uploads deleted.",
+    documentation="Total number of deleted uploads.",
 )
 
-BATCHES_DELETED = Counter(
+BATCH_FILES_DELETED = Counter(
     namespace=NAMESPACE,
     subsystem=Subsystem.API.value,
     name="batches_deleted",
-    documentation="Total number of Batch Files deleted.",
+    documentation="Total number of deleted batches.",
 )

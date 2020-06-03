@@ -10,17 +10,12 @@
 #    GNU Affero General Public License for more details.
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program. If not, see <https://www.gnu.org/licenses/>.
-from functools import wraps
-from typing import Any, Callable, Coroutine
 
-from sanic.response import HTTPResponse
-
-from immuni_common.core.exceptions import ApiException, UnauthorizedOtpException
+from immuni_common.core.exceptions import UnauthorizedOtpException
 from immuni_common.helpers.otp import key_for_otp_sha
 from immuni_common.models.dataclasses import OtpData
 from immuni_common.models.marshmallow.schemas import OtpDataSchema
 from immuni_exposure_ingestion.core.managers import managers
-from immuni_exposure_ingestion.monitoring.api import CHECK_OTP_REQUESTS, UPLOAD_REQUESTS
 
 
 async def validate_otp_token(otp_sha: str, delete: bool = False) -> OtpData:
@@ -45,46 +40,3 @@ async def validate_otp_token(otp_sha: str, delete: bool = False) -> OtpData:
     if data is None:
         raise UnauthorizedOtpException()
     return OtpDataSchema().loads(data)
-
-
-def monitor_upload(f: Callable[..., Coroutine[Any, Any, HTTPResponse]]) -> Callable:
-    """
-    Utility function to track the metrics relative to the upload request.
-    :param f: The upload function to decorate.
-    :return: The decorated function
-    """
-
-    @wraps(f)
-    async def _wrapper(*args: Any, **kwargs: Any) -> HTTPResponse:
-        dummy = kwargs["is_dummy"]
-        province = kwargs["province"]
-        try:
-            response = await f(*args, **kwargs)
-            UPLOAD_REQUESTS.labels(dummy, province, response.status).inc()
-        except ApiException as error:
-            UPLOAD_REQUESTS.labels(dummy, province, error.status_code).inc()
-            raise
-        return response
-
-    return _wrapper
-
-
-def monitor_check_otp(f: Callable[..., Coroutine[Any, Any, HTTPResponse]]) -> Callable:
-    """
-    Utility function to track the metrics relative to the check-otp request.
-    :param f: The check-otp function to decorate.
-    :return: The decorated function
-    """
-
-    @wraps(f)
-    async def _wrapper(*args: Any, **kwargs: Any) -> HTTPResponse:
-        dummy = kwargs["is_dummy"]
-        try:
-            response = await f(*args, **kwargs)
-            CHECK_OTP_REQUESTS.labels(dummy, response.status).inc()
-        except ApiException as err:
-            CHECK_OTP_REQUESTS.labels(dummy, err.status_code).inc()
-            raise
-        return response
-
-    return _wrapper

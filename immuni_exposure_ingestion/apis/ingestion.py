@@ -38,11 +38,7 @@ from immuni_common.models.marshmallow.validators import TekListValidator
 from immuni_common.models.mongoengine.temporary_exposure_key import TemporaryExposureKey
 from immuni_common.models.swagger import HeaderImmuniContentTypeJson
 from immuni_exposure_ingestion.core import config
-from immuni_exposure_ingestion.helpers.api import (
-    validate_otp_token,
-    monitor_upload,
-    monitor_check_otp,
-)
+from immuni_exposure_ingestion.helpers.api import validate_otp_token
 from immuni_exposure_ingestion.helpers.exposure_data import store_exposure_detection_summaries
 from immuni_exposure_ingestion.helpers.upload import (
     slow_down_request,
@@ -58,6 +54,7 @@ from immuni_exposure_ingestion.models.swagger import (
 from immuni_exposure_ingestion.models.swagger import Upload as UploadDoc
 from immuni_exposure_ingestion.models.upload import Upload
 from immuni_exposure_ingestion.monitoring.api import SUMMARIES_PROCESSED
+from immuni_exposure_ingestion.monitoring.helpers import monitor_check_otp, monitor_upload
 
 _LOGGER = logging.getLogger(__name__)
 
