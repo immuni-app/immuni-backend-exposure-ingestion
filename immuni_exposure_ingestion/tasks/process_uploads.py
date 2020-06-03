@@ -123,10 +123,7 @@ async def _process_uploads() -> None:
         _LOGGER.info(
             "Flagged uploads as published.", extra=dict(n_processed_uploads=len(processed_uploads))
         )
-
-        # Update the metrics..
         UPLOADS_ENQUEUED.set(Upload.to_process().count())
-
         _LOGGER.info("Releasing lock.")
 
     _LOGGER.info("Upload processing completed successfully.")
