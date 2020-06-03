@@ -40,5 +40,14 @@ def delete_old_data() -> None:
             "Some Upload objects were unprocessed until deleted! This should never happen!"
         )
 
-    Upload.delete_older_than(reference_date)
-    BatchFile.delete_older_than(reference_date)
+    n_deleted_uploads = Upload.delete_older_than(reference_date)
+    _LOGGER.info(
+        "Upload documents deletion completed.",
+        extra=dict(n_deleted=n_deleted_uploads, created_before=reference_date),
+    )
+
+    n_deleted_batch_files = BatchFile.delete_older_than(reference_date)
+    _LOGGER.info(
+        "BatchFile documents deletion completed.",
+        extra=dict(n_deleted=n_deleted_batch_files, created_before=reference_date),
+    )
