@@ -100,7 +100,7 @@ bp = Blueprint("ingestion", url_prefix="ingestion")
     exposure_detection_summaries=fields.Nested(
         ExposureDetectionSummarySchema, required=True, many=True,
     ),
-    padding=fields.String(validate=Regexp(r"^[a-zA-Z0-9]*$")),
+    padding=fields.String(validate=Regexp(rf"^[a-zA-Z0-9]{{0,{config.MAX_PADDING_SIZE}}}$")),
 )
 @validate_token_format
 @cache(no_store=True)
@@ -172,7 +172,7 @@ async def upload(  # pylint: disable=too-many-arguments
 )
 @validate(
     location=Location.JSON,
-    padding=fields.String(required=True, validate=Regexp(r"^[a-zA-Z0-9]*$")),
+    padding=fields.String(validate=Regexp(rf"^[a-zA-Z0-9]{{0,{config.MAX_PADDING_SIZE}}}$")),
 )
 @validate_token_format
 @slow_down_request

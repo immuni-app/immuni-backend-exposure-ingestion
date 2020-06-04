@@ -329,3 +329,26 @@ async def test_upload_otp_complete(
             province="AG", exposure_detection_summaries=upload_data["exposure_detection_summaries"],
         ),
     )
+
+
+@pytest.mark.parametrize("invalid_padding", ["\\asd*&!@#", "a" * (config.MAX_PADDING_SIZE + 1)])
+async def test_invalid_paddings_upload(
+    client: TestClient,
+    invalid_padding: str,
+    otp: OtpData,
+    auth_headers: Dict[str, str],
+    upload_data: Dict,
+) -> None:
+    upload_data["padding"] = invalid_padding
+    response = await client.post("/v1/ingestion/upload", json=upload_data, headers=auth_headers,)
+    assert response.status == 400
+
+
+@pytest.mark.parametrize("invalid_padding", ["\\asd*&!@#", "a" * (config.MAX_PADDING_SIZE + 1)])
+async def test_invalid_paddings_check_otp(
+    client: TestClient, invalid_padding: str, auth_headers: Dict[str, str],
+) -> None:
+    response = await client.post(
+        "/v1/ingestion/check-otp", json=dict(padding=invalid_padding), headers=auth_headers,
+    )
+    assert response.status == 400

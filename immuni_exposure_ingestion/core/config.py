@@ -87,3 +87,5 @@ BATCH_PERIODICITY_CRONTAB: str = config(
 DELETE_OLD_DATA_CRONTAB: str = config(
     "DELETE_OLD_DATA_CRONTAB", cast=validate_crontab("DELETE_OLD_DATA_CRONTAB"), default="0 0 * * *"
 )
+
+MAX_PADDING_SIZE: int = config("MAX_PADDING_SIZE", default=150_000)
