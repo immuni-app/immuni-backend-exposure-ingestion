@@ -128,7 +128,7 @@ async def upload(  # pylint: disable=too-many-arguments
 
     if is_dummy:
         await wait_configured_time()  # Simulate the time of a real request
-        return HTTPResponse(status=HTTPStatus.NO_CONTENT)
+        return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
 
     upload_model = Upload(keys=teks)
 
@@ -141,7 +141,7 @@ async def upload(  # pylint: disable=too-many-arguments
 
     await store_exposure_detection_summaries(exposure_detection_summaries, province=province)
 
-    return HTTPResponse(status=HTTPStatus.NO_CONTENT)
+    return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
 
 
 @bp.route("/check-otp", version=1, methods=["POST"])
@@ -189,7 +189,7 @@ async def check_otp(request: Request, is_dummy: bool, padding: str) -> HTTPRespo
     if is_dummy:
         if secrets.randbelow(100) < config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT:
             raise UnauthorizedOtpException()
-        return HTTPResponse(status=HTTPStatus.NO_CONTENT)
+        return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
 
     await validate_otp_token(request.token)
-    return HTTPResponse(status=HTTPStatus.NO_CONTENT)
+    return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
