@@ -128,7 +128,7 @@ jobs:
       - checkout
       - initialize-submodules
       - poetry-install:
-          deps_cache_version: "v2"
+          deps_cache_version: "v3"
       - pytest:
           coverage_path: ./immuni_exposure_ingestion
           min_coverage: 98
@@ -141,7 +141,7 @@ jobs:
       - checkout
       - initialize-submodules
       - poetry-install:
-          deps_cache_version: "v2"
+          deps_cache_version: "v3"
       - run:
           name: "[python] Run checks"
           command: poetry run checks immuni_exposure_ingestion --ci
