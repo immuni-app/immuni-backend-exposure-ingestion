@@ -22,7 +22,7 @@ def monitor_upload(f: Callable[..., Coroutine[Any, Any, HTTPResponse]]) -> Calla
             response = await f(*args, **kwargs)
             UPLOAD_REQUESTS.labels(dummy, province, response.status).inc()
         except ApiException as error:
-            UPLOAD_REQUESTS.labels(dummy, province, error.status_code).inc()
+            UPLOAD_REQUESTS.labels(dummy, province, error.status_code.value).inc()
             raise
         return response
 
@@ -42,8 +42,8 @@ def monitor_check_otp(f: Callable[..., Coroutine[Any, Any, HTTPResponse]]) -> Ca
         try:
             response = await f(*args, **kwargs)
             CHECK_OTP_REQUESTS.labels(dummy, response.status).inc()
-        except ApiException as err:
-            CHECK_OTP_REQUESTS.labels(dummy, err.status_code).inc()
+        except ApiException as error:
+            CHECK_OTP_REQUESTS.labels(dummy, error.status_code.value).inc()
             raise
         return response
 
