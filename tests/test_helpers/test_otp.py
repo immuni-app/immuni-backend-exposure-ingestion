@@ -21,7 +21,7 @@ from immuni_common.core.exceptions import UnauthorizedOtpException
 from immuni_common.helpers.otp import key_for_otp_sha
 from immuni_common.helpers.tests import generate_otp
 from immuni_exposure_ingestion.core.managers import managers
-from immuni_exposure_ingestion.helpers.otp import validate_otp_token
+from immuni_exposure_ingestion.helpers.api import validate_otp_token
 
 _OTP = generate_otp()
 _OTP_SHA = sha256(_OTP.encode("utf-8")).hexdigest()

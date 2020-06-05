@@ -70,15 +70,11 @@ class Upload(Document):
         cls.objects(id__in=ids).update(to_publish=False)
 
     @classmethod
-    def delete_older_than(cls, datetime_: datetime) -> None:
+    def delete_older_than(cls, datetime_: datetime) -> int:
         """
         Delete all Uploads older than the given datetime.
 
         :param datetime_: the datetime to check against.
+        :return: the number of deleted documents.
         """
-        objects = cls.objects.filter(id__lte=ObjectId.from_datetime(datetime_))
-        n_deleted = objects.delete()
-        _LOGGER.info(
-            "Upload documents deletion completed.",
-            extra=dict(n_deleted=n_deleted, created_before=datetime_.isoformat()),
-        )
+        return cls.objects.filter(id__lte=ObjectId.from_datetime(datetime_)).delete()
