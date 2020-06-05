@@ -12,7 +12,6 @@
 #    along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-from datetime import timedelta
 
 from decouple import config
 
@@ -57,10 +56,6 @@ DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT: int = config(
 MAX_KEYS_PER_UPLOAD: int = config("MAX_KEYS_PER_UPLOAD", cast=int, default=14)
 MAX_KEYS_PER_BATCH: int = config("MAX_KEYS_PER_BATCH", cast=int, default=10000)
 
-MAX_ALLOWED_CLIENT_SKEW_IN_SECONDS: int = config(
-    "MAX_ALLOWED_CLIENT_SKEW_IN_SECONDS", cast=int, default=timedelta(hours=1).total_seconds()
-)
-
 DAYS_BEFORE_SYMPTOMS_TO_CONSIDER_KEY_AT_RISK: int = config(
     "DAYS_BEFORE_SYMPTOMS_TO_CONSIDER_KEY_AT_RISK", cast=int, default=2
 )
@@ -92,3 +87,5 @@ BATCH_PERIODICITY_CRONTAB: str = config(
 DELETE_OLD_DATA_CRONTAB: str = config(
     "DELETE_OLD_DATA_CRONTAB", cast=validate_crontab("DELETE_OLD_DATA_CRONTAB"), default="0 0 * * *"
 )
+
+MAX_PADDING_SIZE: int = config("MAX_PADDING_SIZE", cast=int, default=150_000)

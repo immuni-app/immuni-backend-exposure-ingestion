@@ -102,7 +102,7 @@ bp = Blueprint("ingestion", url_prefix="ingestion")
     exposure_detection_summaries=fields.Nested(
         ExposureDetectionSummarySchema, required=True, many=True,
     ),
-    padding=fields.String(validate=Regexp(r"^[a-zA-Z0-9]*$")),
+    padding=fields.String(validate=Regexp(rf"^[a-zA-Z0-9]{{0,{config.MAX_PADDING_SIZE}}}$")),
 )
 @validate_token_format
 @cache(no_store=True)
@@ -131,7 +131,7 @@ async def upload(  # pylint: disable=too-many-arguments
 
     if is_dummy:
         await wait_configured_time()  # Simulate the time of a real request
-        return HTTPResponse(status=HTTPStatus.NO_CONTENT)
+        return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
 
     upload_model = Upload(keys=teks)
 
@@ -145,7 +145,7 @@ async def upload(  # pylint: disable=too-many-arguments
     SUMMARIES_PROCESSED.inc(len(exposure_detection_summaries))
     await store_exposure_detection_summaries(exposure_detection_summaries, province=province)
 
-    return HTTPResponse(status=HTTPStatus.NO_CONTENT)
+    return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
 
 
 @bp.route("/check-otp", version=1, methods=["POST"])
@@ -176,7 +176,7 @@ async def upload(  # pylint: disable=too-many-arguments
 )
 @validate(
     location=Location.JSON,
-    padding=fields.String(required=True, validate=Regexp(r"^[a-zA-Z0-9]*$")),
+    padding=fields.String(validate=Regexp(rf"^[a-zA-Z0-9]{{0,{config.MAX_PADDING_SIZE}}}$")),
 )
 @validate_token_format
 @slow_down_request
@@ -194,7 +194,7 @@ async def check_otp(request: Request, is_dummy: bool, padding: str) -> HTTPRespo
     if is_dummy:
         if secrets.randbelow(100) < config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT:
             raise UnauthorizedOtpException()
-        return HTTPResponse(status=HTTPStatus.NO_CONTENT)
+        return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
 
     await validate_otp_token(request.token)
-    return HTTPResponse(status=HTTPStatus.NO_CONTENT)
+    return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
