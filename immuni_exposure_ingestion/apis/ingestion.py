@@ -16,7 +16,7 @@ import secrets
 from http import HTTPStatus
 from typing import List
 
-from marshmallow import fields
+from marshmallow import ValidationError, fields
 from marshmallow.validate import Regexp
 from sanic import Blueprint
 from sanic.request import Request
@@ -97,12 +97,12 @@ bp = Blueprint("ingestion", url_prefix="ingestion")
     location=Location.JSON,
     province=Province(),
     teks=fields.Nested(
-        TemporaryExposureKeySchema, required=True, many=True, validate=TekListValidator()
+        TemporaryExposureKeySchema, required=True, many=True, validate=lambda x: len(x) < 15
     ),
     exposure_detection_summaries=fields.Nested(
-        ExposureDetectionSummarySchema, required=True, many=True,
+        ExposureDetectionSummarySchema, required=True, many=True
     ),
-    padding=fields.String(validate=Regexp(rf"^[a-zA-Z0-9]{{0,{config.MAX_PADDING_SIZE}}}$")),
+    padding=fields.String(validate=Regexp(rf"^[a-f0-9]{{0,{config.MAX_PADDING_SIZE}}}$")),
 )
 @validate_token_format
 @cache(no_store=True)
@@ -132,6 +132,17 @@ async def upload(  # pylint: disable=too-many-arguments
     if is_dummy:
         await wait_configured_time()  # Simulate the time of a real request
         return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
+
+    # perform consistency checks in the list of uploaded teks
+    try:
+        TekListValidator()(teks)
+    except ValidationError as exc:
+        _LOGGER.error(
+            "Inconsistency detected in the uploaded teks",
+            extra=dict(teks=[t.to_json() for t in teks], error=str(exc)),
+        )
+        # make sure not to save the inconsistent keys in the upload document
+        teks = []
 
     upload_model = Upload(keys=teks)
 
@@ -180,7 +191,7 @@ async def upload(  # pylint: disable=too-many-arguments
 )
 @validate(
     location=Location.JSON,
-    padding=fields.String(validate=Regexp(rf"^[a-zA-Z0-9]{{0,{config.MAX_PADDING_SIZE}}}$")),
+    padding=fields.String(validate=Regexp(rf"^[a-f0-9]{{0,{config.MAX_PADDING_SIZE}}}$")),
 )
 @validate_token_format
 @slow_down_request
