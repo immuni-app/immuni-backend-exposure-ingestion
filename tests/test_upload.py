@@ -33,7 +33,7 @@ from tests.fixtures.upload import generate_random_key_data
 
 UPLOAD_DATA = dict(
     province="AG",
-    padding="S0meP4Dd1nG",
+    padding="4dd16",
     exposure_detection_summaries=[
         {
             "date": date.today().isoformat(),
@@ -100,7 +100,7 @@ async def test_dummy_data_check_otp_success(
     auth_headers["Immuni-Dummy-Data"] = "1"
     auth_headers.update(CONTENT_TYPE_HEADER)
     response = await client.post(
-        "/v1/ingestion/check-otp", json=dict(padding="S0meP4Dd1nG"), headers=auth_headers
+        "/v1/ingestion/check-otp", json=dict(padding="4dd1"), headers=auth_headers
     )
     assert response.status == 204
     assert Upload.objects.count() == 0
@@ -112,7 +112,7 @@ async def test_dummy_data_check_otp_fail(client: TestClient, auth_headers: Dict[
     auth_headers["Immuni-Dummy-Data"] = "1"
     auth_headers.update(CONTENT_TYPE_HEADER)
     response = await client.post(
-        "/v1/ingestion/check-otp", json=dict(padding="S0meP4Dd1nG"), headers=auth_headers
+        "/v1/ingestion/check-otp", json=dict(padding="4dd1"), headers=auth_headers
     )
     assert response.status == 401
     data = await response.json()
@@ -214,7 +214,7 @@ async def test_check_otp_without_headers(
 async def test_upload_otp_check_fail(client: TestClient, auth_headers: Dict[str, str]) -> None:
     auth_headers.update(CONTENT_TYPE_HEADER)
     response = await client.post(
-        "/v1/ingestion/check-otp", json=dict(padding="S0meP4Dd1nG"), headers=auth_headers,
+        "/v1/ingestion/check-otp", json=dict(padding="4dd1"), headers=auth_headers,
     )
     assert response.status == 401
     data = await response.json()
@@ -228,7 +228,7 @@ async def test_upload_otp_check_pass(
 ) -> None:
     auth_headers.update(CONTENT_TYPE_HEADER)
     response = await client.post(
-        "/v1/ingestion/check-otp", json=dict(padding="S0meP4Dd1nG"), headers=auth_headers,
+        "/v1/ingestion/check-otp", json=dict(padding="4dd1"), headers=auth_headers,
     )
     assert response.status == 204
     assert Upload.objects.count() == 0
@@ -241,14 +241,36 @@ async def test_upload_too_many_keys(
     # Add 14 more keys
     for _ in range(14):
         upload_data["teks"].append(
-            {"key_data": generate_random_key_data(), "rolling_start_number": 12345}
+            {
+                "key_data": generate_random_key_data(),
+                "rolling_start_number": 12345,
+                "rolling_period": 144,
+            }
         )
 
     auth_headers.update(CONTENT_TYPE_HEADER)
     response = await client.post("/v1/ingestion/upload", json=upload_data, headers=auth_headers,)
-    # It was a request with too many keys. Response code should be a fake "ok"
     assert response.status == 400
     assert Upload.objects.count() == 0
+
+
+async def test_upload_invalid_start_numbers(
+    client: TestClient, otp: OtpData, auth_headers: Dict[str, str], upload_data: Dict,
+) -> None:
+
+    upload_data["teks"][1]["rolling_start_number"] = (
+        upload_data["teks"][1]["rolling_start_number"] + 10
+    )
+
+    auth_headers.update(CONTENT_TYPE_HEADER)
+    response = await client.post("/v1/ingestion/upload", json=upload_data, headers=auth_headers,)
+    assert response.status == 204
+    assert Upload.objects.count() == 1
+    upload = Upload.objects.first()
+    # teks should be discarded, as they did not pass the teks validator
+    assert not upload.keys
+    assert upload.to_publish is True
+    assert upload.symptoms_started_on == otp.symptoms_started_on
 
 
 @pytest.mark.parametrize("length", (0, 1, 15, 17, 100))
