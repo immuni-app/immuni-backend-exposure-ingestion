@@ -143,7 +143,11 @@ async def upload(  # pylint: disable=too-many-arguments
     _LOGGER.info("Created new upload.", extra=dict(n_teks=len(teks)))
 
     SUMMARIES_PROCESSED.inc(len(exposure_detection_summaries))
-    await store_exposure_detection_summaries(exposure_detection_summaries, province=province)
+    await store_exposure_detection_summaries(
+        exposure_detection_summaries,
+        province=province,
+        symptoms_started_on=otp.symptoms_started_on,
+    )
 
     return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
 
