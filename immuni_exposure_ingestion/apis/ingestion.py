@@ -38,8 +38,8 @@ from immuni_common.models.marshmallow.validators import TekListValidator
 from immuni_common.models.mongoengine.temporary_exposure_key import TemporaryExposureKey
 from immuni_common.models.swagger import HeaderImmuniContentTypeJson
 from immuni_exposure_ingestion.core import config
+from immuni_exposure_ingestion.helpers.api import validate_otp_token
 from immuni_exposure_ingestion.helpers.exposure_data import store_exposure_detection_summaries
-from immuni_exposure_ingestion.helpers.otp import validate_otp_token
 from immuni_exposure_ingestion.helpers.upload import (
     slow_down_request,
     validate_token_format,
@@ -53,6 +53,8 @@ from immuni_exposure_ingestion.models.swagger import (
 )
 from immuni_exposure_ingestion.models.swagger import Upload as UploadDoc
 from immuni_exposure_ingestion.models.upload import Upload
+from immuni_exposure_ingestion.monitoring.api import SUMMARIES_PROCESSED
+from immuni_exposure_ingestion.monitoring.helpers import monitor_check_otp, monitor_upload
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -100,10 +102,11 @@ bp = Blueprint("ingestion", url_prefix="ingestion")
     exposure_detection_summaries=fields.Nested(
         ExposureDetectionSummarySchema, required=True, many=True,
     ),
-    padding=fields.String(validate=Regexp(r"^[a-zA-Z0-9]*$")),
+    padding=fields.String(validate=Regexp(rf"^[a-zA-Z0-9]{{0,{config.MAX_PADDING_SIZE}}}$")),
 )
 @validate_token_format
 @cache(no_store=True)
+@monitor_upload
 async def upload(  # pylint: disable=too-many-arguments
     request: Request,
     province: str,
@@ -128,7 +131,7 @@ async def upload(  # pylint: disable=too-many-arguments
 
     if is_dummy:
         await wait_configured_time()  # Simulate the time of a real request
-        return HTTPResponse(status=HTTPStatus.NO_CONTENT)
+        return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
 
     upload_model = Upload(keys=teks)
 
@@ -139,13 +142,14 @@ async def upload(  # pylint: disable=too-many-arguments
 
     _LOGGER.info("Created new upload.", extra=dict(n_teks=len(teks)))
 
+    SUMMARIES_PROCESSED.inc(len(exposure_detection_summaries))
     await store_exposure_detection_summaries(
         exposure_detection_summaries,
         province=province,
         symptoms_started_on=otp.symptoms_started_on,
     )
 
-    return HTTPResponse(status=HTTPStatus.NO_CONTENT)
+    return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
 
 
 @bp.route("/check-otp", version=1, methods=["POST"])
@@ -176,11 +180,12 @@ async def upload(  # pylint: disable=too-many-arguments
 )
 @validate(
     location=Location.JSON,
-    padding=fields.String(required=True, validate=Regexp(r"^[a-zA-Z0-9]*$")),
+    padding=fields.String(validate=Regexp(rf"^[a-zA-Z0-9]{{0,{config.MAX_PADDING_SIZE}}}$")),
 )
 @validate_token_format
 @slow_down_request
 @cache(no_store=True)
+@monitor_check_otp
 async def check_otp(request: Request, is_dummy: bool, padding: str) -> HTTPResponse:
     """
     Check the OTP validity, aka successfully enabled by the OTP Service.
@@ -193,7 +198,7 @@ async def check_otp(request: Request, is_dummy: bool, padding: str) -> HTTPRespo
     if is_dummy:
         if secrets.randbelow(100) < config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT:
             raise UnauthorizedOtpException()
-        return HTTPResponse(status=HTTPStatus.NO_CONTENT)
+        return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
 
     await validate_otp_token(request.token)
-    return HTTPResponse(status=HTTPStatus.NO_CONTENT)
+    return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)

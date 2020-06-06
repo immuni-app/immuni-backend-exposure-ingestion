@@ -30,14 +30,12 @@ async def generate_various_data(num_days: int) -> None:
     for i in range(num_days):
         with freeze_time(starting_date + timedelta(days=i)):
             generate_random_uploads(
-                1,
-                start_time=datetime.utcnow(),
-                end_time=datetime.utcnow() + timedelta(days=1, seconds=1),
+                1, start_time=datetime.utcnow(), end_time=datetime.utcnow() + timedelta(days=1),
             )
             BatchFile(
                 index=i,
                 keys=[TemporaryExposureKey(key_data="dummy_data", rolling_start_number=12345)],
-                period_start=datetime.today() - timedelta(days=1, seconds=1),
+                period_start=datetime.today() - timedelta(days=1),
                 period_end=datetime.today(),
             ).save()
 
