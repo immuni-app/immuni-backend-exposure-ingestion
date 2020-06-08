@@ -17,7 +17,7 @@ from copy import deepcopy
 from datetime import date, datetime, timedelta
 from hashlib import sha256
 from http import HTTPStatus
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 import pytest
 from pytest_sanic.utils import TestClient
@@ -300,6 +300,7 @@ async def test_upload_keys_with_missing_teks(
 @pytest.mark.parametrize("include_infos", [True, False])
 @pytest.mark.parametrize("include_summaries", [True, False])
 @pytest.mark.parametrize("include_teks", [True, False])
+@pytest.mark.parametrize("remove_tek", [None] + [*range(14)])
 async def test_upload_otp_complete(
     client: TestClient,
     otp: OtpData,
@@ -308,6 +309,7 @@ async def test_upload_otp_complete(
     include_infos: bool,
     include_summaries: bool,
     include_teks: bool,
+    remove_tek: Optional[int],
 ) -> None:
 
     otp_sha = sha256("12345".encode("utf-8")).hexdigest()
@@ -316,6 +318,8 @@ async def test_upload_otp_complete(
         upload_data["exposure_detection_summaries"][0]["exposure_info"] = []
     if not include_summaries:
         upload_data["exposure_detection_summaries"] = []
+    if remove_tek is not None:
+        del upload_data["teks"][remove_tek]
     if not include_teks:
         upload_data["teks"] = []
 
@@ -331,12 +335,11 @@ async def test_upload_otp_complete(
     assert upload.symptoms_started_on == otp.symptoms_started_on
 
     if include_teks:
-        assert len(upload.keys) == 14
-        assert upload.keys[0].key_data == upload_data["teks"][0]["key_data"]
-        assert upload.keys[0].rolling_start_number == upload_data["teks"][0]["rolling_start_number"]
-        assert upload.keys[0].rolling_period == 144
-        assert upload.keys[1].key_data == upload_data["teks"][1]["key_data"]
-        assert upload.keys[1].rolling_start_number == upload_data["teks"][1]["rolling_start_number"]
+        assert len(upload.keys) == len(upload_data["teks"])
+        for uploaded_tek, retrieved_tek in zip(upload_data["teks"], upload.keys):
+            assert retrieved_tek.key_data == uploaded_tek["key_data"]
+            assert retrieved_tek.rolling_start_number == uploaded_tek["rolling_start_number"]
+            assert retrieved_tek.rolling_period == uploaded_tek["rolling_period"]
     else:
         assert upload.keys == []
 
@@ -376,3 +379,20 @@ async def test_invalid_paddings_check_otp(
         "/v1/ingestion/check-otp", json=dict(padding=invalid_padding), headers=auth_headers,
     )
     assert response.status == 400
+
+
+async def test_upload_allows_non_consecutive_keys(
+    client: TestClient, otp: OtpData, auth_headers: Dict[str, str], upload_data: Dict,
+) -> None:
+    otp_sha = sha256("12345".encode("utf-8")).hexdigest()
+    auth_headers.update(CONTENT_TYPE_HEADER)
+
+    # Remove a random tek
+    del upload_data["teks"][3]
+
+    response = await client.post("/v1/ingestion/upload", json=upload_data, headers=auth_headers,)
+
+    assert response.status == 204
+    assert await managers.otp_redis.get(key_for_otp_sha(otp_sha)) is None
+
+    upload = Upload.objects.first()
