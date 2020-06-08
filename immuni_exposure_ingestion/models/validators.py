@@ -1,3 +1,4 @@
+import operator
 from typing import List
 
 from marshmallow import ValidationError
@@ -42,11 +43,14 @@ class TekListValidator(Validator):
                 f"Too many TEKs. (actual: {n_keys}, max_allowed: {config.MAX_KEYS_PER_UPLOAD})"
             )
 
-        rolling_start_numbers = set(tek.rolling_start_number for tek in value)
-        min_start_number = min(rolling_start_numbers)
-        expected_start_numbers = set(
-            min_start_number + 144 * i for i in range(config.MAX_KEYS_PER_UPLOAD)
-        )
+        sorted_teks = sorted(value, key=operator.attrgetter("rolling_start_number"))
+        rolling_start_numbers = [t.rolling_start_number for t in sorted_teks]
 
-        if not rolling_start_numbers.issubset(expected_start_numbers):
-            raise ValidationError("Unexpected rolling start numbers identified.")
+        if len(rolling_start_numbers) != len(set(rolling_start_numbers)):
+            raise ValidationError("Rolling start numbers are not unique")
+
+        next_rolling_start_number = sorted_teks[0].rolling_start_number
+        for current in sorted_teks:
+            if current.rolling_start_number < next_rolling_start_number:
+                raise ValidationError("Overlapping rolling start numbers")
+            next_rolling_start_number = current.rolling_start_number + current.rolling_period
