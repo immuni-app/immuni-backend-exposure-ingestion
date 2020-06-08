@@ -19,7 +19,6 @@ class TekListValidator(Validator):
 
         - Any ENIntervalNumber values from the same user are not unique.
         - The period of time covered by the data file exceeds 14 days.
-        - There are any gaps in the ENIntervalNumber values for a user.
         - Any keys in the file have overlapping time windows.
         - The TEKRollingPeriod value is not 144.
 
