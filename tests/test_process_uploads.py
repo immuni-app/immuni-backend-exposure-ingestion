@@ -53,7 +53,9 @@ async def test_process_uploads_simple() -> None:
     with mock_external_response():
         current_time = datetime.utcnow()
         generate_random_uploads(
-            5, start_time=current_time - timedelta(hours=4), end_time=current_time,
+            5,
+            start_time=current_time - timedelta(days=1, hours=4),
+            end_time=current_time - timedelta(days=1),
         )
 
         assert BatchFile.objects.count() == 0
@@ -115,7 +117,9 @@ async def test_process_uploads_advanced(prehash: bool) -> None:
     with mock_external_response():
         current_time = datetime.utcnow()
         generate_random_uploads(
-            20, start_time=current_time, end_time=current_time + timedelta(hours=4),
+            20,
+            start_time=current_time - timedelta(days=1),
+            end_time=current_time - timedelta(days=1) + timedelta(hours=4),
         )
 
         assert BatchFile.objects.count() == 0
@@ -154,3 +158,37 @@ async def test_process_uploads_advanced(prehash: bool) -> None:
 
         # Make sure that there are some unprocessed uploads.
         assert Upload.objects.filter(to_publish=True).count() == 4
+
+
+@mock_config(config, "MAX_KEYS_PER_BATCH", 100)
+@mock_config(config, "BATCH_PERIODICITY_CRONTAB", "0 */4 * * *")
+@mock_config(config, "MAX_KEYS_PER_UPLOAD", 14)
+@mock_config(config, "SIGNATURE_EXTERNAL_URL", "example.com")
+@mock_config(config, "SIGNATURE_KEY_ALIAS_NAME", "alias")
+async def test_process_uploads_does_not_include_todays_keys() -> None:
+    with mock_external_response():
+        current_time = datetime.utcnow()
+        generate_random_uploads(
+            5, start_time=current_time - timedelta(hours=4), end_time=current_time,
+        )
+
+        assert BatchFile.objects.count() == 0
+
+        with freeze_time(current_time), patch(
+            "immuni_exposure_ingestion.tasks.process_uploads._LOGGER"
+        ) as mock_logger:
+            await _process_uploads()
+            assert mock_logger.warning.call_count == 0
+
+        assert BatchFile.objects.count() == 1
+
+        batch_file = BatchFile.objects.first()
+
+        today_rolling_start_number = int(
+            current_time.replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+            / timedelta(minutes=10).total_seconds()
+        )
+
+        assert len(batch_file.keys) == 45
+
+        assert all(key.rolling_start_number < today_rolling_start_number for key in batch_file.keys)
