@@ -379,20 +379,3 @@ async def test_invalid_paddings_check_otp(
         "/v1/ingestion/check-otp", json=dict(padding=invalid_padding), headers=auth_headers,
     )
     assert response.status == 400
-
-
-async def test_upload_allows_non_consecutive_keys(
-    client: TestClient, otp: OtpData, auth_headers: Dict[str, str], upload_data: Dict,
-) -> None:
-    otp_sha = sha256("12345".encode("utf-8")).hexdigest()
-    auth_headers.update(CONTENT_TYPE_HEADER)
-
-    # Remove a random tek
-    del upload_data["teks"][3]
-
-    response = await client.post("/v1/ingestion/upload", json=upload_data, headers=auth_headers,)
-
-    assert response.status == 204
-    assert await managers.otp_redis.get(key_for_otp_sha(otp_sha)) is None
-
-    upload = Upload.objects.first()
