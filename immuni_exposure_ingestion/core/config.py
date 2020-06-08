@@ -66,6 +66,7 @@ APP_BUNDLE_ID: str = config("APP_BUNDLE_ID", default="it.ministerodellasalute.im
 ANDROID_PACKAGE: str = config("ANDROID_PACKAGE", default="it.ministerodellasalute.immuni")
 REGION: str = config("REGION", default="222")
 
+EXCLUDE_CURRENT_DAY_TEK: bool = config("EXCLUDE_CURRENT_DAY_TEK", cast=bool, default=True)
 EXPORT_BIN_HEADER: str = config("EXPORT_BIN_HEADER", default="EK Export v1")
 
 VERIFICATION_KEY_ID: str = config("VERIFICATION_KEY_ID", default="222")

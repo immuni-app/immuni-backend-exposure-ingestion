@@ -49,13 +49,12 @@ async def test_lock() -> None:
 @mock_config(config, "MAX_KEYS_PER_UPLOAD", 14)
 @mock_config(config, "SIGNATURE_EXTERNAL_URL", "example.com")
 @mock_config(config, "SIGNATURE_KEY_ALIAS_NAME", "alias")
+@mock_config(config, "EXCLUDE_CURRENT_DAY_TEK", False)
 async def test_process_uploads_simple() -> None:
     with mock_external_response():
         current_time = datetime.utcnow()
         generate_random_uploads(
-            5,
-            start_time=current_time - timedelta(days=1, hours=4),
-            end_time=current_time - timedelta(days=1),
+            5, start_time=current_time - timedelta(hours=4), end_time=current_time,
         )
 
         assert BatchFile.objects.count() == 0
@@ -108,6 +107,7 @@ async def test_process_uploads_simple() -> None:
 @mock_config(config, "MAX_KEYS_PER_UPLOAD", 14)
 @mock_config(config, "SIGNATURE_EXTERNAL_URL", "example.com")
 @mock_config(config, "SIGNATURE_KEY_ALIAS_NAME", "alias")
+@mock_config(config, "EXCLUDE_CURRENT_DAY_TEK", False)
 @pytest.mark.parametrize("prehash", [True, False])
 async def test_process_uploads_advanced(prehash: bool) -> None:
     """
@@ -117,9 +117,7 @@ async def test_process_uploads_advanced(prehash: bool) -> None:
     with mock_external_response():
         current_time = datetime.utcnow()
         generate_random_uploads(
-            20,
-            start_time=current_time - timedelta(days=1),
-            end_time=current_time - timedelta(days=1) + timedelta(hours=4),
+            20, start_time=current_time, end_time=current_time + timedelta(hours=4),
         )
 
         assert BatchFile.objects.count() == 0
@@ -165,6 +163,7 @@ async def test_process_uploads_advanced(prehash: bool) -> None:
 @mock_config(config, "MAX_KEYS_PER_UPLOAD", 14)
 @mock_config(config, "SIGNATURE_EXTERNAL_URL", "example.com")
 @mock_config(config, "SIGNATURE_KEY_ALIAS_NAME", "alias")
+@mock_config(config, "EXCLUDE_CURRENT_DAY_TEK", True)
 async def test_process_uploads_does_not_include_todays_keys() -> None:
     with mock_external_response():
         current_time = datetime.utcnow()
