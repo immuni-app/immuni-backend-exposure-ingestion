@@ -53,3 +53,12 @@ class TekListValidator(Validator):
             if current.rolling_start_number < next_rolling_start_number:
                 raise ValidationError("Overlapping rolling start numbers")
             next_rolling_start_number = current.rolling_start_number + current.rolling_period
+
+        if config.ALLOW_NON_CONSECUTIVE_TEKS:
+            return
+
+        initial_start_number = rolling_start_numbers[0]
+        if rolling_start_numbers != [
+            initial_start_number + 144 * i for i in range(len(rolling_start_numbers))
+        ]:
+            raise ValidationError("Some TemporaryExposureKeys are missing!")

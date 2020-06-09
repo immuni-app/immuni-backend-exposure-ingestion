@@ -297,6 +297,7 @@ async def test_upload_keys_with_missing_teks(
     assert response.status == HTTPStatus.BAD_REQUEST.value
 
 
+@mock_config(config, "ALLOW_NON_CONSECUTIVE_TEKS", True)
 @pytest.mark.parametrize("include_infos", [True, False])
 @pytest.mark.parametrize("include_summaries", [True, False])
 @pytest.mark.parametrize("include_teks", [True, False])

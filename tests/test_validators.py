@@ -77,3 +77,14 @@ async def test_tek_key_validator_fails_with_overlapping_periods(
         TekListValidator().__call__(teks)
 
     assert err.value.messages[0] == "Overlapping rolling start numbers"
+
+
+@pytest.mark.parametrize("missing_index", range(1, 12))
+async def test_tek_key_validator_fails_with_missing_teks(
+    teks: List[TemporaryExposureKey], missing_index: int
+) -> None:
+    del teks[missing_index]
+    with raises(ValidationError) as err:
+        TekListValidator().__call__(teks)
+
+    assert err.value.messages[0] == "Some TemporaryExposureKeys are missing!"

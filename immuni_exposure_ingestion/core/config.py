@@ -31,6 +31,8 @@ OTP_CACHE_REDIS_MAX_CONNECTIONS: int = config(
     "OTP_CACHE_REDIS_MAX_CONNECTIONS", default=10, cast=int
 )
 
+ALLOW_NON_CONSECUTIVE_TEKS: bool = config("ALLOW_NON_CONSECUTIVE_TEKS", cast=bool, default=False)
+
 ANALYTICS_BROKER_REDIS_URL: str = config(
     "ANALYTICS_BROKER_REDIS_URL", default="redis://localhost:6379/1"
 )
