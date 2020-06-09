@@ -11,7 +11,7 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-from datetime import date, timedelta, datetime
+from datetime import datetime, timedelta
 from typing import Iterable
 
 from immuni_common.models.enums import TransmissionRiskLevel
@@ -26,7 +26,7 @@ def extract_keys_with_risk_level_from_upload(upload: Upload) -> Iterable[Tempora
     The algorithm currently considers at maximum risk all of the keys created after two days before
     the symptoms started.
 
-    We will also remove any keys created today.
+    We will also remove any keys that might still be valid.
 
     :param upload: the upload whose keys are to be extracted from.
     :return: the list of the given upload's keys that are considered at risk of transmission.
@@ -41,7 +41,6 @@ def extract_keys_with_risk_level_from_upload(upload: Upload) -> Iterable[Tempora
     for key in keys_at_risk:
         key.transmission_risk_level = TransmissionRiskLevel.highest
 
-    # Also remove any keys that might still be valid
     return (
         [key for key in keys_at_risk if key.expires_at < datetime.utcnow()]
         if config.EXCLUDE_CURRENT_DAY_TEK
