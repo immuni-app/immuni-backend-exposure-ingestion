@@ -54,7 +54,7 @@ async def test_tek_key_validator_fails_if_too_many_teks(teks: List[TemporaryExpo
     with raises(ValidationError) as err:
         TekListValidator().__call__(teks)
 
-    assert err.value.messages[0] == "Too many TEKs. (actual: 14, max_allowed: 13)"
+    assert err.value.messages[0] == "Too many TEKs. (actual: 14, max_allowed: 13)."
 
 
 @pytest.mark.parametrize("duplicated_index", range(1, 13))
@@ -65,7 +65,7 @@ async def test_tek_key_validator_fails_with_duplicated_start_numbers(
     with raises(ValidationError) as err:
         TekListValidator().__call__(teks)
 
-    assert err.value.messages[0] == "Rolling start numbers are not unique"
+    assert err.value.messages[0] == "Rolling start numbers are not unique."
 
 
 @pytest.mark.parametrize("overlapping_index", range(1, 13))
@@ -76,7 +76,7 @@ async def test_tek_key_validator_fails_with_overlapping_periods(
     with raises(ValidationError) as err:
         TekListValidator().__call__(teks)
 
-    assert err.value.messages[0] == "Overlapping rolling start numbers"
+    assert err.value.messages[0] == "Overlapping rolling start numbers."
 
 
 @pytest.mark.parametrize("missing_index", range(1, 12))
@@ -87,4 +87,4 @@ async def test_tek_key_validator_fails_with_missing_teks(
     with raises(ValidationError) as err:
         TekListValidator().__call__(teks)
 
-    assert err.value.messages[0] == "Some TemporaryExposureKeys are missing!"
+    assert err.value.messages[0] == "Some TemporaryExposureKeys are missing."
