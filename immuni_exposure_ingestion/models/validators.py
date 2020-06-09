@@ -39,19 +39,19 @@ class TekListValidator(Validator):
 
         if (n_keys := len(value)) > config.MAX_KEYS_PER_UPLOAD:
             raise ValidationError(
-                f"Too many TEKs. (actual: {n_keys}, max_allowed: {config.MAX_KEYS_PER_UPLOAD})"
+                f"Too many TEKs. (actual: {n_keys}, max_allowed: {config.MAX_KEYS_PER_UPLOAD})."
             )
 
         sorted_teks = sorted(value, key=operator.attrgetter("rolling_start_number"))
         rolling_start_numbers = [t.rolling_start_number for t in sorted_teks]
 
         if len(rolling_start_numbers) != len(set(rolling_start_numbers)):
-            raise ValidationError("Rolling start numbers are not unique")
+            raise ValidationError("Rolling start numbers are not unique.")
 
         next_rolling_start_number = sorted_teks[0].rolling_start_number
         for current in sorted_teks:
             if current.rolling_start_number < next_rolling_start_number:
-                raise ValidationError("Overlapping rolling start numbers")
+                raise ValidationError("Overlapping rolling start numbers.")
             next_rolling_start_number = current.rolling_start_number + current.rolling_period
 
         if config.ALLOW_NON_CONSECUTIVE_TEKS:
@@ -61,4 +61,4 @@ class TekListValidator(Validator):
         if rolling_start_numbers != [
             initial_start_number + 144 * i for i in range(len(rolling_start_numbers))
         ]:
-            raise ValidationError("Some TemporaryExposureKeys are missing!")
+            raise ValidationError("Some TemporaryExposureKeys are missing.")
