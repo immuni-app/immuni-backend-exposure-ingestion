@@ -11,7 +11,7 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from typing import Iterable
 
 from immuni_common.models.enums import TransmissionRiskLevel
@@ -43,7 +43,7 @@ def extract_keys_with_risk_level_from_upload(upload: Upload) -> Iterable[Tempora
 
     # Also remove any keys that might still be valid
     return (
-        [key for key in keys_at_risk if key.created_at.date() < date.today()]
+        [key for key in keys_at_risk if key.expires_at < datetime.utcnow()]
         if config.EXCLUDE_CURRENT_DAY_TEK
         else keys_at_risk
     )
