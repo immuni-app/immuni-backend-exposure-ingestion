@@ -41,6 +41,8 @@ def extract_keys_with_risk_level_from_upload(upload: Upload) -> Iterable[Tempora
     for key in keys_at_risk:
         key.transmission_risk_level = TransmissionRiskLevel.highest
 
+    # TODO: Handle current day TEKs (if any) instead of discarding them.
+
     return (
         [key for key in keys_at_risk if key.expires_at < datetime.utcnow()]
         if config.EXCLUDE_CURRENT_DAY_TEK
