@@ -1,12 +1,12 @@
 from datetime import datetime, timedelta
-from typing import List, Dict
+from typing import List
 
 import pytest
-from immuni_common.helpers.tests import mock_config
-from immuni_common.models.mongoengine.temporary_exposure_key import TemporaryExposureKey
 from marshmallow import ValidationError
 from pytest import raises
 
+from immuni_common.helpers.tests import mock_config
+from immuni_common.models.mongoengine.temporary_exposure_key import TemporaryExposureKey
 from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.models.validators import TekListValidator
 from tests.fixtures.upload import generate_random_key_data
