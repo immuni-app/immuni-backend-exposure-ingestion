@@ -34,7 +34,6 @@ from immuni_common.models.marshmallow.schemas import (
     ExposureDetectionSummarySchema,
     TemporaryExposureKeySchema,
 )
-from immuni_common.models.marshmallow.validators import TekListValidator
 from immuni_common.models.mongoengine.temporary_exposure_key import TemporaryExposureKey
 from immuni_common.models.swagger import HeaderImmuniContentTypeJson
 from immuni_exposure_ingestion.core import config
@@ -53,6 +52,7 @@ from immuni_exposure_ingestion.models.swagger import (
 )
 from immuni_exposure_ingestion.models.swagger import Upload as UploadDoc
 from immuni_exposure_ingestion.models.upload import Upload
+from immuni_exposure_ingestion.models.validators import TekListValidator
 from immuni_exposure_ingestion.monitoring.api import SUMMARIES_PROCESSED
 from immuni_exposure_ingestion.monitoring.helpers import monitor_check_otp, monitor_upload
 
@@ -209,7 +209,7 @@ async def check_otp(request: Request, is_dummy: bool, padding: str) -> HTTPRespo
     :param padding: the dummy data sent to protect against analysis of the traffic size.
     :return: 204 if the OTP is valid, 400 on SchemaValidationException, 401 on unauthorised OTP.
     """
-    
+
     # Dummy requests are currently being filtered at the reverse proxy level,
     # emulating the same behavior implemented below and introducing a response delay.
     # We may re-evaluate this decision in the future
