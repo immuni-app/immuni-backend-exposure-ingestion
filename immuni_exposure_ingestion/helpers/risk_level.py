@@ -26,7 +26,7 @@ def extract_keys_with_risk_level_from_upload(upload: Upload) -> Iterable[Tempora
     The algorithm currently considers at maximum risk all of the keys created after two days before
     the symptoms started.
 
-    We will also remove any keys that might still be valid.
+    It will also remove any keys that might still be valid.
 
     :param upload: the upload whose keys are to be extracted from.
     :return: the list of the given upload's keys that are considered at risk of transmission.
