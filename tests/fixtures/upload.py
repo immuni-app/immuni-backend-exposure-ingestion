@@ -40,6 +40,7 @@ def generate_batch_of_keys(n: int = 14) -> Iterable[TemporaryExposureKey]:
         TemporaryExposureKey(
             key_data=generate_random_key_data(),
             rolling_start_number=int((starting_date + timedelta(days=day)).timestamp() / 600),
+            rolling_period=144,
         )
         for day in range(config.MAX_KEYS_PER_UPLOAD)
     ]
