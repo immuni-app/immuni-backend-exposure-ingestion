@@ -12,7 +12,6 @@
 #    along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-import secrets
 from http import HTTPStatus
 from typing import List
 
@@ -25,11 +24,12 @@ from sanic_openapi import doc
 
 from immuni_common.core.exceptions import SchemaValidationException, UnauthorizedOtpException
 from immuni_common.helpers.cache import cache
-from immuni_common.helpers.sanic import validate
+from immuni_common.helpers.sanic import handle_dummy_requests, json_response, validate
 from immuni_common.helpers.swagger import doc_exception
+from immuni_common.helpers.utils import WeightedPayload
 from immuni_common.models.dataclasses import ExposureDetectionSummary
 from immuni_common.models.enums import Location
-from immuni_common.models.marshmallow.fields import IntegerBoolField, Province
+from immuni_common.models.marshmallow.fields import Province
 from immuni_common.models.marshmallow.schemas import (
     ExposureDetectionSummarySchema,
     TemporaryExposureKeySchema,
@@ -39,11 +39,7 @@ from immuni_common.models.swagger import HeaderImmuniContentTypeJson
 from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.helpers.api import validate_otp_token
 from immuni_exposure_ingestion.helpers.exposure_data import store_exposure_detection_summaries
-from immuni_exposure_ingestion.helpers.upload import (
-    slow_down_request,
-    validate_token_format,
-    wait_configured_time,
-)
+from immuni_exposure_ingestion.helpers.upload import slow_down_request, validate_token_format
 from immuni_exposure_ingestion.models.swagger import (
     CheckOtp,
     HeaderImmuniAuthorizationOtpSha,
@@ -89,9 +85,6 @@ bp = Blueprint("ingestion", url_prefix="ingestion")
 @validate(
     location=Location.HEADERS,
     client_clock=fields.Integer(required=True, data_key=HeaderImmuniClientClock.DATA_KEY),
-    is_dummy=IntegerBoolField(
-        required=True, allow_strings=True, data_key=HeaderImmuniDummyData.DATA_KEY,
-    ),
 )
 @validate(
     location=Location.JSON,
@@ -107,6 +100,7 @@ bp = Blueprint("ingestion", url_prefix="ingestion")
 @validate_token_format
 @cache(no_store=True)
 @monitor_upload
+@handle_dummy_requests([WeightedPayload(1, HTTPResponse(status=HTTPStatus.NO_CONTENT.value))])
 async def upload(  # pylint: disable=too-many-arguments
     request: Request,
     province: str,
@@ -114,7 +108,6 @@ async def upload(  # pylint: disable=too-many-arguments
     exposure_detection_summaries: List[ExposureDetectionSummary],
     client_clock: int,
     padding: str,
-    is_dummy: bool,
 ) -> HTTPResponse:
     """
     Allow Mobile Clients to upload their Temporary Exposure Keys.
@@ -125,16 +118,8 @@ async def upload(  # pylint: disable=too-many-arguments
     :param exposure_detection_summaries: the Epidemiological Info of the last 14 days, if any.
     :param client_clock: the clock on client's side, validated, but ignored.
     :param padding: the dummy data sent to protect against analysis of the traffic size.
-    :param is_dummy: whether the uploaded data is dummy or not.
     :return: 204 on successful upload, 400 on SchemaValidationException.
     """
-
-    # Dummy requests are currently being filtered at the reverse proxy level,
-    # emulating the same behavior implemented below and introducing a response delay.
-    # We may re-evaluate this decision in the future
-    if is_dummy:
-        await wait_configured_time()  # Simulate the time of a real request
-        return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
 
     # perform consistency checks in the list of uploaded teks
     try:
@@ -187,12 +172,6 @@ async def upload(  # pylint: disable=too-many-arguments
     HTTPStatus.NO_CONTENT.value, None, description="Operation completed successfully.",
 )
 @validate(
-    location=Location.HEADERS,
-    is_dummy=IntegerBoolField(
-        required=True, allow_strings=True, data_key=HeaderImmuniDummyData.DATA_KEY,
-    ),
-)
-@validate(
     location=Location.JSON,
     padding=fields.String(validate=Regexp(rf"^[a-f0-9]{{0,{config.MAX_PADDING_SIZE}}}$")),
 )
@@ -200,23 +179,32 @@ async def upload(  # pylint: disable=too-many-arguments
 @slow_down_request
 @cache(no_store=True)
 @monitor_check_otp
-async def check_otp(request: Request, is_dummy: bool, padding: str) -> HTTPResponse:
+@handle_dummy_requests(
+    [
+        WeightedPayload(
+            config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT,
+            json_response(
+                body=dict(
+                    message=UnauthorizedOtpException.error_message,
+                    error_code=UnauthorizedOtpException.error_code,
+                ),
+                status=UnauthorizedOtpException.status_code,
+            ),
+        ),
+        WeightedPayload(
+            100 - config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT,
+            HTTPResponse(status=HTTPStatus.NO_CONTENT.value),
+        ),
+    ]
+)
+async def check_otp(request: Request, padding: str) -> HTTPResponse:
     """
     Check the OTP validity, aka successfully enabled by the OTP Service.
 
     :param request: the HTTP request object.
-    :param is_dummy: whether the uploaded data is dummy or not.
     :param padding: the dummy data sent to protect against analysis of the traffic size.
     :return: 204 if the OTP is valid, 400 on SchemaValidationException, 401 on unauthorised OTP.
     """
-
-    # Dummy requests are currently being filtered at the reverse proxy level,
-    # emulating the same behavior implemented below and introducing a response delay.
-    # We may re-evaluate this decision in the future
-    if is_dummy:
-        if secrets.randbelow(100) < config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT:
-            raise UnauthorizedOtpException()
-        return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
 
     await validate_otp_token(request.token)
     return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)

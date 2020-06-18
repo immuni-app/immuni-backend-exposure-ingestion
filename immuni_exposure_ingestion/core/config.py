@@ -48,8 +48,12 @@ CELERY_ALWAYS_EAGER: bool = config(
 
 DATA_RETENTION_DAYS: int = config("DATA_RETENTION_DAYS", cast=int, default=14)
 
-NOISE_REQUEST_TIMEOUT_MILLIS: int = config("NOISE_REQUEST_TIMEOUT", cast=int, default=150)
-NOISE_REQUEST_TIMEOUT_SIGMA: int = config("NOISE_REQUEST_TIMEOUT_SIGMA", cast=int, default=20)
+CHECK_OTP_REQUEST_TIMEOUT_MILLIS: int = config(
+    "CHECK_OTP_REQUEST_TIMEOUT_MILLIS", cast=int, default=150
+)
+CHECK_OTP_REQUEST_TIMEOUT_SIGMA: int = config(
+    "CHECK_OTP_REQUEST_TIMEOUT_SIGMA", cast=int, default=20
+)
 
 DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT: int = config(
     "DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT", cast=int, default=1

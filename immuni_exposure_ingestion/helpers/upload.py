@@ -11,8 +11,6 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import asyncio
-import random
 import re
 from functools import wraps
 from typing import Any, Awaitable, Callable
@@ -21,6 +19,7 @@ from sanic.request import Request
 from sanic.response import HTTPResponse
 
 from immuni_common.core.exceptions import SchemaValidationException
+from immuni_common.helpers.sanic import wait_configured_time
 from immuni_exposure_ingestion.core import config
 
 
@@ -43,20 +42,6 @@ def validate_token_format(f: Callable) -> Callable:
     return _wrapper
 
 
-async def wait_configured_time() -> None:
-    """
-    Wait for the configured time.
-    This is usually useful to make dummy requests last a similar amount of time when compared to the
-    real ones, or slow down potential brute force attacks.
-    """
-    await asyncio.sleep(
-        random.normalvariate(
-            config.NOISE_REQUEST_TIMEOUT_MILLIS, config.NOISE_REQUEST_TIMEOUT_SIGMA
-        )
-        / 1000.0
-    )
-
-
 def slow_down_request(f: Callable[..., Awaitable]) -> Callable:
     """
     Decorator to artificially slow down the marked requests, in order to make brute force harder to
@@ -68,7 +53,9 @@ def slow_down_request(f: Callable[..., Awaitable]) -> Callable:
 
     @wraps(f)
     async def _wrapper(*args: Any, **kwargs: Any) -> HTTPResponse:
-        await wait_configured_time()
+        await wait_configured_time(
+            mu=config.CHECK_OTP_REQUEST_TIMEOUT_MILLIS, sigma=config.CHECK_OTP_REQUEST_TIMEOUT_SIGMA
+        )
         return await f(*args, **kwargs)
 
     return _wrapper
