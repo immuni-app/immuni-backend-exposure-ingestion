@@ -18,6 +18,7 @@ from datetime import date, datetime, timedelta
 from hashlib import sha256
 from http import HTTPStatus
 from typing import Dict, Optional, Tuple
+from unittest.mock import patch
 
 import pytest
 from pytest_sanic.utils import TestClient
@@ -93,27 +94,27 @@ async def test_dummy_data_upload(
     assert await managers.analytics_redis.llen(config.ANALYTICS_QUEUE_KEY) == 0
 
 
-@mock_config(config, "DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT", 0)
 async def test_dummy_data_check_otp_success(
     client: TestClient, auth_headers: Dict[str, str]
 ) -> None:
     auth_headers["Immuni-Dummy-Data"] = "1"
     auth_headers.update(CONTENT_TYPE_HEADER)
-    response = await client.post(
-        "/v1/ingestion/check-otp", json=dict(padding="4dd1"), headers=auth_headers
-    )
+    with patch("immuni_common.helpers.sanic.weighted_random", side_effect=lambda x: x[1].payload):
+        response = await client.post(
+            "/v1/ingestion/check-otp", json=dict(padding="4dd1"), headers=auth_headers
+        )
     assert response.status == 204
     assert Upload.objects.count() == 0
     assert await managers.analytics_redis.llen(config.ANALYTICS_QUEUE_KEY) == 0
 
 
-@mock_config(config, "DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT", 100)
 async def test_dummy_data_check_otp_fail(client: TestClient, auth_headers: Dict[str, str]) -> None:
     auth_headers["Immuni-Dummy-Data"] = "1"
     auth_headers.update(CONTENT_TYPE_HEADER)
-    response = await client.post(
-        "/v1/ingestion/check-otp", json=dict(padding="4dd1"), headers=auth_headers
-    )
+    with patch("immuni_common.helpers.sanic.weighted_random", side_effect=lambda x: x[0].payload):
+        response = await client.post(
+            "/v1/ingestion/check-otp", json=dict(padding="4dd1"), headers=auth_headers
+        )
     assert response.status == 401
     data = await response.json()
     assert data["message"] == UnauthorizedOtpException.error_message

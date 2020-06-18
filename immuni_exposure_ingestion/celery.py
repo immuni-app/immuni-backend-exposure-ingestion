@@ -12,13 +12,11 @@
 #    along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
-from typing import Any, List, Tuple
+from typing import Any, Tuple
 
-from celery.schedules import crontab
 from celery.signals import worker_process_init, worker_process_shutdown
-from croniter import croniter
 
-from immuni_common.celery import CeleryApp, Schedule
+from immuni_common.celery import CeleryApp, Schedule, string_to_crontab
 from immuni_exposure_ingestion import tasks
 from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.core.managers import managers
@@ -35,16 +33,9 @@ def _get_schedules() -> Tuple[Schedule, ...]:
     from immuni_exposure_ingestion.tasks.process_uploads import process_uploads
     from immuni_exposure_ingestion.tasks.delete_old_data import delete_old_data
 
-    def to_crontab_args(crontab_entry: str) -> List[str]:
-        return [",".join(map(str, x)) for x in croniter(crontab_entry).expanded]
-
     return (
-        Schedule(
-            task=process_uploads, when=crontab(*to_crontab_args(config.BATCH_PERIODICITY_CRONTAB))
-        ),
-        Schedule(
-            task=delete_old_data, when=crontab(*to_crontab_args(config.DELETE_OLD_DATA_CRONTAB))
-        ),
+        Schedule(task=process_uploads, when=string_to_crontab(config.BATCH_PERIODICITY_CRONTAB)),
+        Schedule(task=delete_old_data, when=string_to_crontab(config.DELETE_OLD_DATA_CRONTAB)),
     )
 
 
