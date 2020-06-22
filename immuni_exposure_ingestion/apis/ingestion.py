@@ -24,7 +24,7 @@ from sanic_openapi import doc
 
 from immuni_common.core.exceptions import SchemaValidationException, UnauthorizedOtpException
 from immuni_common.helpers.cache import cache
-from immuni_common.helpers.sanic import handle_dummy_requests, json_response, validate
+from immuni_common.helpers.sanic import handle_dummy_requests, validate
 from immuni_common.helpers.swagger import doc_exception
 from immuni_common.helpers.utils import WeightedPayload
 from immuni_common.models.dataclasses import ExposureDetectionSummary
