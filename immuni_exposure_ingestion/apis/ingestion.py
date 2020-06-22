@@ -181,16 +181,7 @@ async def upload(  # pylint: disable=too-many-arguments
 @monitor_check_otp
 @handle_dummy_requests(
     [
-        WeightedPayload(
-            config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT,
-            json_response(
-                body=dict(
-                    message=UnauthorizedOtpException.error_message,
-                    error_code=UnauthorizedOtpException.error_code,
-                ),
-                status=UnauthorizedOtpException.status_code,
-            ),
-        ),
+        WeightedPayload(config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT, UnauthorizedOtpException(),),
         WeightedPayload(
             100 - config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT,
             HTTPResponse(status=HTTPStatus.NO_CONTENT.value),
