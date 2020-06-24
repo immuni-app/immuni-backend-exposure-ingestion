@@ -100,6 +100,9 @@ bp = Blueprint("ingestion", url_prefix="ingestion")
 @validate_token_format
 @cache(no_store=True)
 @monitor_upload
+# Dummy requests are currently being filtered at the reverse proxy level, emulating the same
+# behavior implemented below and introducing a response delay.
+# This may be re-evaluated in the future.
 @handle_dummy_requests([WeightedPayload(1, HTTPResponse(status=HTTPStatus.NO_CONTENT.value))])
 async def upload(  # pylint: disable=too-many-arguments
     request: Request,
@@ -179,6 +182,9 @@ async def upload(  # pylint: disable=too-many-arguments
 @slow_down_request
 @cache(no_store=True)
 @monitor_check_otp
+# Dummy requests are currently being filtered at the reverse proxy level, emulating the same
+# behavior implemented below and introducing a response delay.
+# This may be re-evaluated in the future.
 @handle_dummy_requests(
     [
         WeightedPayload(config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT, UnauthorizedOtpException(),),
