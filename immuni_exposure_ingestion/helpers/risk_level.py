@@ -11,6 +11,7 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import logging
 from datetime import datetime, timedelta
 from typing import Iterable
 
@@ -18,6 +19,8 @@ from immuni_common.models.enums import TransmissionRiskLevel
 from immuni_common.models.mongoengine.temporary_exposure_key import TemporaryExposureKey
 from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.models.upload import Upload
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def extract_keys_with_risk_level_from_upload(upload: Upload) -> Iterable[TemporaryExposureKey]:
@@ -42,9 +45,22 @@ def extract_keys_with_risk_level_from_upload(upload: Upload) -> Iterable[Tempora
         key.transmission_risk_level = TransmissionRiskLevel.highest
 
     # TODO: Handle current day TEKs (if any) instead of discarding them.
-
-    return (
+    keys_at_risk_filtered = (
         [key for key in keys_at_risk if key.expires_at < datetime.utcnow()]
         if config.EXCLUDE_CURRENT_DAY_TEK
         else keys_at_risk
     )
+
+    _LOGGER.info(
+        "Extracting keys at risk from upload.",
+        extra=dict(
+            upload_id=str(upload.id),
+            symptoms_started_on=upload.symptoms_started_on,
+            first_risky_time=first_risky_time,
+            n_keys_upload=len(upload.keys),
+            n_keys_at_risk=len(keys_at_risk),
+            n_keys_at_risk_filtered=len(keys_at_risk_filtered),
+        ),
+    )
+
+    return keys_at_risk_filtered

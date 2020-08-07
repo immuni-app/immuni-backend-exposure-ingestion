@@ -31,7 +31,8 @@ OTP_CACHE_REDIS_MAX_CONNECTIONS: int = config(
     "OTP_CACHE_REDIS_MAX_CONNECTIONS", default=10, cast=int
 )
 
-ALLOW_NON_CONSECUTIVE_TEKS: bool = config("ALLOW_NON_CONSECUTIVE_TEKS", cast=bool, default=False)
+# Default to True as one could disable the bluetooth for more than a day.
+ALLOW_NON_CONSECUTIVE_TEKS: bool = config("ALLOW_NON_CONSECUTIVE_TEKS", cast=bool, default=True)
 
 ANALYTICS_BROKER_REDIS_URL: str = config(
     "ANALYTICS_BROKER_REDIS_URL", default="redis://localhost:6379/1"
@@ -59,7 +60,10 @@ DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT: int = config(
     "DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT", cast=int, default=1
 )
 
-MAX_KEYS_PER_UPLOAD: int = config("MAX_KEYS_PER_UPLOAD", cast=int, default=14)
+# [14 days before TEKs + (possibly) 1 current day TEK with rolling_period up until "now" = 15 TEKs]
+# Yet, since the upload could fail (e.g., connection error), there could be multiple TEKs per day.
+# Following Google's suggestion, some slack is given here by setting it to 30.
+MAX_KEYS_PER_UPLOAD: int = config("MAX_KEYS_PER_UPLOAD", cast=int, default=30)
 MAX_KEYS_PER_BATCH: int = config("MAX_KEYS_PER_BATCH", cast=int, default=10000)
 
 DAYS_BEFORE_SYMPTOMS_TO_CONSIDER_KEY_AT_RISK: int = config(

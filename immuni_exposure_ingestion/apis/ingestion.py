@@ -126,10 +126,10 @@ async def upload(  # pylint: disable=too-many-arguments
 
     # perform consistency checks in the list of uploaded teks
     try:
-        TekListValidator()(teks)
+        teks = TekListValidator()(teks)
     except ValidationError as exc:
         _LOGGER.error(
-            "Inconsistency detected in the uploaded teks",
+            "Inconsistency detected in the uploaded teks.",
             extra=dict(teks=[t.to_json() for t in teks], error=str(exc)),
         )
         # make sure not to save the inconsistent keys in the upload document

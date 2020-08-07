@@ -44,7 +44,7 @@ def worker_process_init_listener(**kwargs: Any) -> None:
     """
     Callback on worker initialization.
     """
-    asyncio.run(managers.initialize())
+    asyncio.run(managers.initialize())  # pragma: no cover
 
 
 @worker_process_shutdown.connect
@@ -52,7 +52,7 @@ def worker_process_shutdown_listener(**kwargs: Any) -> None:
     """
     Callback on worker shutdown.
     """
-    asyncio.run(managers.teardown())
+    asyncio.run(managers.teardown())  # pragma: no cover
 
 
 celery_app = CeleryApp(
