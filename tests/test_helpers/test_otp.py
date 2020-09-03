@@ -12,7 +12,7 @@
 #    along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import json
-from datetime import date
+from datetime import date, timedelta
 from hashlib import sha256
 
 from pytest import raises
@@ -25,20 +25,25 @@ from immuni_exposure_ingestion.helpers.api import validate_otp_token
 
 _OTP = generate_otp()
 _OTP_SHA = sha256(_OTP.encode("utf-8")).hexdigest()
+_SYMPTOMS_STARTED_ON = date.today() - timedelta(days=30)
 
 
 async def test_load_success() -> None:
     key = key_for_otp_sha(_OTP_SHA)
-    await managers.otp_redis.set(key=key, value=json.dumps({"symptoms_started_on": "2020-03-01"}))
+    await managers.otp_redis.set(
+        key=key, value=json.dumps({"symptoms_started_on": _SYMPTOMS_STARTED_ON.isoformat()})
+    )
     actual = await validate_otp_token(otp_sha=_OTP_SHA)
-    assert actual.symptoms_started_on == date(year=2020, month=3, day=1)
+    assert actual.symptoms_started_on == _SYMPTOMS_STARTED_ON
 
 
 async def test_load_success_and_delete() -> None:
     key = key_for_otp_sha(_OTP_SHA)
-    await managers.otp_redis.set(key=key, value=json.dumps({"symptoms_started_on": "2020-03-01"}))
+    await managers.otp_redis.set(
+        key=key, value=json.dumps({"symptoms_started_on": _SYMPTOMS_STARTED_ON.isoformat()})
+    )
     actual = await validate_otp_token(otp_sha=_OTP_SHA, delete=True)
-    assert actual.symptoms_started_on == date(year=2020, month=3, day=1)
+    assert actual.symptoms_started_on == _SYMPTOMS_STARTED_ON
 
     assert await managers.otp_redis.get(key=key) is None
 
