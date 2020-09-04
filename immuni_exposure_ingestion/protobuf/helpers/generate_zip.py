@@ -13,10 +13,15 @@
 
 import base64
 import logging
+from datetime import datetime
 from io import BytesIO
+from typing import List
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from immuni_common.models.mongoengine.batch_file import BatchFile
+from immuni_common.models.mongoengine.temporary_exposure_key import (
+    TemporaryExposureKey as TemporaryExposureKeyModel,
+)
 from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.helpers.external_signature import get_external_signature
 from immuni_exposure_ingestion.protobuf.models.schema_v1_pb2 import (
@@ -45,7 +50,13 @@ def signature_info() -> SignatureInfo:
     )
 
 
-def export_batch_file_to_bin_content(batch_file: BatchFile) -> bytes:
+def export_batch_file_to_bin_content(
+    keys: List[TemporaryExposureKeyModel],
+    period_start: datetime,
+    period_end: datetime,
+    sub_batch_index: int,
+    sub_batch_count: int,
+) -> bytes:
     """
     Transform a BatchFile into the binary content for the 'export.bin' file that will be fed to
     the Mobile Client SDK.
@@ -60,12 +71,12 @@ def export_batch_file_to_bin_content(batch_file: BatchFile) -> bytes:
 
     # Compose the TEK Export protobuf object.
     export = TemporaryExposureKeyExport(
-        start_timestamp=int(batch_file.period_start.timestamp()),
-        end_timestamp=int(batch_file.period_end.timestamp()),
+        start_timestamp=int(period_start.timestamp()),
+        end_timestamp=int(period_end.timestamp()),
         region=config.REGION,
         signature_infos=[signature_info()],
-        batch_num=batch_file.sub_batch_index,
-        batch_size=batch_file.sub_batch_count,
+        batch_num=sub_batch_index,
+        batch_size=sub_batch_count,
         keys=[
             TemporaryExposureKey(
                 key_data=base64.b64decode(key.key_data),
@@ -73,7 +84,7 @@ def export_batch_file_to_bin_content(batch_file: BatchFile) -> bytes:
                 rolling_start_interval_number=key.rolling_start_number,
                 rolling_period=key.rolling_period,
             )
-            for key in batch_file.keys
+            for key in keys
         ],
     )
 
@@ -81,7 +92,7 @@ def export_batch_file_to_bin_content(batch_file: BatchFile) -> bytes:
     return content
 
 
-def signature_content(bin_content: bytes, batch_file: BatchFile) -> bytes:
+def signature_content(bin_content: bytes, sub_batch_index: int, sub_batch_count: int,) -> bytes:
     """
     Return the protobuf serialization of the signature file, calculated for the given BatchFile.
 
@@ -94,15 +105,21 @@ def signature_content(bin_content: bytes, batch_file: BatchFile) -> bytes:
         signatures=[
             TEKSignature(
                 signature_info=signature_info(),
-                batch_num=batch_file.sub_batch_index,
-                batch_size=batch_file.sub_batch_count,
+                batch_num=sub_batch_index,
+                batch_size=sub_batch_count,
                 signature=get_external_signature(bin_content),
             )
         ]
     ).SerializeToString()
 
 
-def batch_to_sdk_zip_file(batch_file: BatchFile) -> bytes:
+def generate_client_content(
+    keys: List[TemporaryExposureKeyModel],
+    period_start: datetime,
+    period_end: datetime,
+    sub_batch_index: int,
+    sub_batch_count: int,
+) -> bytes:
     """
     Create the whole zip archive that will be fed to the Mobile Client SDK.
     NOTE: These functions will probably be updated.
@@ -112,7 +129,13 @@ def batch_to_sdk_zip_file(batch_file: BatchFile) -> bytes:
     """
     archive = BytesIO()
 
-    bin_content = export_batch_file_to_bin_content(batch_file)
+    bin_content = export_batch_file_to_bin_content(
+        keys=keys,
+        period_start=period_start,
+        period_end=period_end,
+        sub_batch_index=sub_batch_index,
+        sub_batch_count=sub_batch_count,
+    )
 
     with ZipFile(archive, "w", compression=ZIP_DEFLATED) as zip_archive:
         # This is the structure of the zip archive that will be used by the Apple / Google APIs.
@@ -120,6 +143,6 @@ def batch_to_sdk_zip_file(batch_file: BatchFile) -> bytes:
             export_file.write(bin_content)
 
         with zip_archive.open("export.sig", "w") as signature_file:
-            signature_file.write(signature_content(bin_content, batch_file=batch_file))
+            signature_file.write(signature_content(bin_content, sub_batch_index, sub_batch_count))
 
     return bytes(archive.getbuffer())

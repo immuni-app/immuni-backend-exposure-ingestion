@@ -14,7 +14,7 @@
 import asyncio
 import logging
 from datetime import datetime
-from typing import List
+from typing import Any, Dict, List
 
 from bson import ObjectId
 from croniter import croniter
@@ -31,7 +31,7 @@ from immuni_exposure_ingestion.monitoring.celery import (
     KEYS_PROCESSED,
     UPLOADS_ENQUEUED,
 )
-from immuni_exposure_ingestion.protobuf.helpers.generate_zip import batch_to_sdk_zip_file
+from immuni_exposure_ingestion.protobuf.helpers.generate_zip import generate_client_content
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,19 +61,12 @@ async def _process_uploads() -> None:
     async with lock_concurrency("process_uploads"):
         _LOGGER.info("Obtained lock.")
 
-        infos = BatchFile.get_latest_info()
-        now = datetime.utcnow()
-
-        if infos:
-            last_period, last_index = infos
-        else:
-            last_period = datetime.fromtimestamp(
-                croniter(config.BATCH_PERIODICITY_CRONTAB).get_prev()
-            )
-            last_index = 0
+        last_period = BatchFile.get_latest_period() or datetime.fromtimestamp(
+            croniter(config.BATCH_PERIODICITY_CRONTAB).get_prev()
+        )
 
         period_start = last_period
-        period_end = now
+        period_end = datetime.utcnow()
 
         _LOGGER.info(
             "Starting to process uploads.",
@@ -103,21 +96,23 @@ async def _process_uploads() -> None:
             # keys of the same device are no more likely to end up consecutively.
             keys = sorted(keys, key=lambda x: x.key_data)
 
-            index = last_index + 1
-
-            batch_file = BatchFile(
-                index=index,
+            common_arguments: Dict[str, Any] = dict(
                 keys=keys,
                 period_start=period_start,
                 period_end=period_end,
                 sub_batch_index=1,
                 sub_batch_count=1,
             )
-            batch_file.client_content = batch_to_sdk_zip_file(batch_file)
-            batch_file.save()
-            _LOGGER.info("Created new batch.", extra=dict(index=index, n_keys=n_keys))
+
+            client_content = generate_client_content(**common_arguments)
+
+            batch_file = BatchFile.create_and_save(
+                **common_arguments, client_content=client_content,
+            )
+
+            _LOGGER.info("Created new batch.", extra=dict(index=batch_file.index, n_keys=n_keys))
             BATCH_FILES_CREATED.inc()
-            KEYS_PROCESSED.inc(len(keys))
+            KEYS_PROCESSED.inc(n_keys)
 
         Upload.set_published(processed_uploads)
         _LOGGER.info(
