@@ -29,6 +29,9 @@ from immuni_common.helpers.tests import mock_config
 from immuni_common.models.dataclasses import OtpData
 from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.core.managers import managers
+from immuni_exposure_ingestion.helpers.temporary_exposure_key import (
+    today_midnight_rolling_start_number,
+)
 from immuni_exposure_ingestion.models.upload import Upload
 from tests.fixtures.upload import generate_random_key_data
 
@@ -302,7 +305,7 @@ async def test_upload_keys_with_missing_teks(
 @pytest.mark.parametrize("include_infos", [True, False])
 @pytest.mark.parametrize("include_summaries", [True, False])
 @pytest.mark.parametrize("include_teks", [True, False])
-@pytest.mark.parametrize("remove_tek", [None] + [*range(14)])
+@pytest.mark.parametrize("remove_tek", [None, *range(14)])
 async def test_upload_otp_complete(
     client: TestClient,
     otp: OtpData,
@@ -324,6 +327,13 @@ async def test_upload_otp_complete(
         del upload_data["teks"][remove_tek]
     if not include_teks:
         upload_data["teks"] = []
+
+    if config.EXCLUDE_CURRENT_DAY_TEK:
+        upload_data["teks"] = [
+            tek
+            for tek in upload_data["teks"]
+            if tek["rolling_start_number"] < today_midnight_rolling_start_number()
+        ]
 
     auth_headers.update(CONTENT_TYPE_HEADER)
     response = await client.post("/v1/ingestion/upload", json=upload_data, headers=auth_headers,)

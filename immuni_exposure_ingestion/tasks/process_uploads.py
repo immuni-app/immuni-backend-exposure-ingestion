@@ -41,7 +41,7 @@ def process_uploads() -> None:
     """
     Celery does not support async functions, so we wrap it around asyncio.run.
     """
-    asyncio.run(_process_uploads())
+    asyncio.run(_process_uploads())  # pragma: no cover
 
 
 async def _process_uploads() -> None:
