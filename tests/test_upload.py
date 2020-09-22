@@ -242,18 +242,12 @@ async def test_upload_otp_check_pass(
 async def test_upload_too_many_keys(
     client: TestClient, otp: OtpData, auth_headers: Dict[str, str], upload_data: Dict,
 ) -> None:
-    # Add 14 more keys
-    for _ in range(14):
-        upload_data["teks"].append(
-            {
-                "key_data": generate_random_key_data(),
-                "rolling_start_number": 12345,
-                "rolling_period": 144,
-            }
-        )
-
     auth_headers.update(CONTENT_TYPE_HEADER)
-    response = await client.post("/v1/ingestion/upload", json=upload_data, headers=auth_headers,)
+
+    with patch(
+        "immuni_exposure_ingestion.core.config.MAX_KEYS_PER_BATCH", len(upload_data["teks"]) - 1
+    ):
+        response = await client.post("/v1/ingestion/upload", json=upload_data, headers=auth_headers)
     assert response.status == 400
     assert Upload.objects.count() == 0
 

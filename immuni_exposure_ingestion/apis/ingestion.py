@@ -90,7 +90,10 @@ bp = Blueprint("ingestion", url_prefix="ingestion")
     location=Location.JSON,
     province=Province(),
     teks=fields.Nested(
-        TemporaryExposureKeySchema, required=True, many=True, validate=lambda x: len(x) < 15
+        TemporaryExposureKeySchema,
+        required=True,
+        many=True,
+        validate=lambda x: len(x) < config.MAX_KEYS_PER_BATCH,
     ),
     exposure_detection_summaries=fields.Nested(
         ExposureDetectionSummarySchema, required=True, many=True
