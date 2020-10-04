@@ -89,6 +89,10 @@ bp = Blueprint("ingestion", url_prefix="ingestion")
 @validate(
     location=Location.JSON,
     province=Province(),
+    country_of_interest=fields.List(
+        fields.String(validate=Regexp(r"^[A-Z]{2}$")),
+        required=False,
+        missing=None),
     teks=fields.Nested(
         TemporaryExposureKeySchema,
         required=True,
@@ -110,6 +114,7 @@ bp = Blueprint("ingestion", url_prefix="ingestion")
 async def upload(  # pylint: disable=too-many-arguments
     request: Request,
     province: str,
+    country_of_interest: List[str],
     teks: List[TemporaryExposureKey],
     exposure_detection_summaries: List[ExposureDetectionSummary],
     client_clock: int,
@@ -120,6 +125,7 @@ async def upload(  # pylint: disable=too-many-arguments
 
     :param request: the HTTP request object.
     :param province: the user's Province of Domicile.
+    :param country_of_interest: the list of countries.
     :param teks: the list of TEKs.
     :param exposure_detection_summaries: the Epidemiological Info of the last 14 days, if any.
     :param client_clock: the clock on client's side, validated, but ignored.
@@ -143,6 +149,10 @@ async def upload(  # pylint: disable=too-many-arguments
     otp = await validate_otp_token(request.token, delete=True)
 
     upload_model.symptoms_started_on = otp.symptoms_started_on
+    # for each keys add the country of interest list coming from the upload request
+    for key in upload_model.keys:
+        key.country_of_interest = country_of_interest
+
     upload_model.save()
 
     _LOGGER.info("Created new upload.", extra=dict(n_teks=len(teks)))
