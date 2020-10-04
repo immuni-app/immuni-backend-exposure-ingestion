@@ -89,6 +89,9 @@ class Upload:
     """
 
     province = doc.String(description="The users's Province of Domicile.", required=True)
+    country_of_interest = doc.List(
+        str, description="The users's visited countries.", required=False
+    )
     teks = doc.List(
         UploadedTemporaryExposureKey, description="The list of TEKs, maximum 14.", required=True
     )
