@@ -1,3 +1,4 @@
 [submodule "common"]
 	path = common
-	url = https://github.com/immuni-app/immuni-backend-common.git 
+	url = https://github.com/immuniteam/immuni-backend-common.git
+	branch = feature/interoperability-eu
