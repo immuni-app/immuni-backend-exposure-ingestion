@@ -15,9 +15,11 @@ import logging
 from datetime import date, datetime, timedelta
 
 from immuni_common.models.mongoengine.batch_file import BatchFile
+from immuni_common.models.mongoengine.batch_file_eu import BatchFileEu
 from immuni_exposure_ingestion.celery import celery_app
 from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.models.upload import Upload
+from immuni_exposure_ingestion.models.upload_eu import UploadEu
 from immuni_exposure_ingestion.monitoring.celery import BATCH_FILES_DELETED, UPLOADS_DELETED
 
 _LOGGER = logging.getLogger(__name__)
@@ -53,5 +55,24 @@ def delete_old_data() -> None:
         extra=dict(n_deleted=batches_deleted, created_before=reference_date),
     )
 
+    # Make sure there are no unprocessed uploads in the data about to be deleted.
+    if UploadEu.unprocessed_before(reference_date):
+        _LOGGER.error(
+            "Some Upload from EU objects were unprocessed until deleted! This should never happen!"
+        )
+
+    uploads_eu_deleted = UploadEu.delete_older_than(reference_date)
+    _LOGGER.info(
+        "UploadEU documents deletion completed.",
+        extra=dict(n_deleted=uploads_eu_deleted, created_before=reference_date),
+    )
+
+    batches_eu_deleted = BatchFileEu.delete_older_than(reference_date)
+    _LOGGER.info(
+        "BatchFileEU documents deletion completed.",
+        extra=dict(n_deleted=batches_eu_deleted, created_before=reference_date),
+    )
+
     UPLOADS_DELETED.inc(uploads_deleted)
     BATCH_FILES_DELETED.inc(batches_deleted)
+
