@@ -157,7 +157,7 @@ def batch_eu():
         extra=dict(period_start=period_start, period_end=period_end),
     )
 
-    uploads = UploadEu.to_process()
+    uploads = UploadEu.to_process(country_="IT")
 
     _LOGGER.info("Uploads have been fetched.", extra=dict(n_uploads=uploads.count()))
 
