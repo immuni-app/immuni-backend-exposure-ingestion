@@ -18,7 +18,7 @@ from datetime import datetime
 from typing import List
 
 from bson import ObjectId
-from mongoengine import BooleanField, DateField, Document, EmbeddedDocumentListField
+from mongoengine import BooleanField, DateField, Document, EmbeddedDocumentListField, StringField
 from pymongo.cursor import Cursor
 
 from immuni_common.models.mongoengine.temporary_exposure_key import TemporaryExposureKey
@@ -34,19 +34,27 @@ class UploadEu(Document):
     to_publish = BooleanField(default=True)
     keys = EmbeddedDocumentListField(TemporaryExposureKey, required=False, default=[])
     symptoms_started_on = DateField(required=True)
+    country = StringField(required=True)
 
     meta = {"indexes": ["to_publish"]}
 
     @classmethod
-    def to_process(cls) -> Cursor:
+    def countries_to_process(cls) -> Cursor:
         """
-        Fetch all of the Uploads yet to be processed.
+        Fetch all countries yet to be processed.
 
-        :return: the cursor that iterates over Uploads that are yet to be processed.
-
-        in order to use the CoI pattern add filter on country field
+        :return: the cursor that iterates over distinct countries that are yet to be processed.
         """
-        return cls.objects.filter(to_publish=True).order_by("id")
+        return cls.objects.filter(to_publish=True).distinct(field="country")
+
+    @classmethod
+    def to_process(cls, country_: str) -> Cursor:
+        """
+        Fetch all of the Uploads by country yet to be processed.
+
+        :return: the cursor that iterates over Uploads by country that are yet to be processed.
+        """
+        return cls.objects.filter(to_publish=True, country=country_).order_by("id")
 
     @classmethod
     def unprocessed_before(cls, datetime_: datetime) -> bool:
@@ -58,8 +66,8 @@ class UploadEu(Document):
           otherwise.
         """
         return (
-            cls.objects.filter(id__lte=ObjectId.from_datetime(datetime_), to_publish=True).count()
-            > 0
+                cls.objects.filter(id__lte=ObjectId.from_datetime(datetime_), to_publish=True).count()
+                > 0
         )
 
     @classmethod
