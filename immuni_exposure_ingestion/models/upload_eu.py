@@ -36,6 +36,10 @@ class UploadEu(Document):
     symptoms_started_on = DateField(required=True)
     country = StringField(required=True)
 
+    origin: str = StringField(required=True)
+
+    batch_tag: str = StringField(null=True)
+
     meta = {"indexes": ["to_publish"]}
 
     @classmethod
