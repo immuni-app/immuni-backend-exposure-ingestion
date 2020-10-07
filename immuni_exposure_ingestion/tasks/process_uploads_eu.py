@@ -69,7 +69,7 @@ async def _process_uploads_eu() -> None:
 
 
 def batch_eu(country_: str):
-    infos = BatchFileEu.get_latest_info(origin=country_)
+    infos = BatchFileEu.get_latest_info(country=country_)
     now = datetime.utcnow()
 
     if infos:
@@ -132,4 +132,4 @@ def batch_eu(country_: str):
     _LOGGER.info(
         "Flagged uploads as published.", extra=dict(n_processed_uploads=len(processed_uploads))
     )
-    UPLOADS_ENQUEUED.set(UploadEu.to_process().count())
+    #UPLOADS_ENQUEUED.set(UploadEu.to_process(country_=country_).count())
