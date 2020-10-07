@@ -62,7 +62,7 @@ async def _process_uploads_eu() -> None:
         _LOGGER.info("Obtained lock.")
         countries = UploadEu.countries_to_process()
         for country in countries:
-            batch_eu(country_=country.country)
+            batch_eu(country_=country)
         _LOGGER.info("Releasing lock.")
 
     _LOGGER.info("Upload processing completed successfully.")
