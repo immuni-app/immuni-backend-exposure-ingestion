@@ -79,32 +79,15 @@ def extract_keys_with_risk_level_from_upload_eu(upload: UploadEu) -> Iterable[Te
     :return: the list of the given upload's keys that are considered at risk of transmission.
     """
 
-    first_risky_time = upload.symptoms_started_on - timedelta(
-        days=config.DAYS_BEFORE_SYMPTOMS_TO_CONSIDER_KEY_AT_RISK
-    )
-
-    keys_at_risk = [key for key in upload.keys if key.created_at.date() >= first_risky_time]
-
-    for key in keys_at_risk:
+    for key in upload.keys:
         key.transmission_risk_level = TransmissionRiskLevel.highest
-
-    # TODO: Handle current day TEKs (if any) instead of discarding them.
-    keys_at_risk_filtered = (
-        [key for key in keys_at_risk if key.expires_at < datetime.utcnow()]
-        if config.EXCLUDE_CURRENT_DAY_TEK
-        else keys_at_risk
-    )
 
     _LOGGER.info(
         "Extracting keys at risk from upload.",
         extra=dict(
             upload_id=str(upload.id),
-            symptoms_started_on=upload.symptoms_started_on,
-            first_risky_time=first_risky_time,
-            n_keys_upload=len(upload.keys),
-            n_keys_at_risk=len(keys_at_risk),
-            n_keys_at_risk_filtered=len(keys_at_risk_filtered),
+            n_keys_upload=len(upload.keys)
         ),
     )
 
-    return keys_at_risk_filtered
+    return upload.keys
