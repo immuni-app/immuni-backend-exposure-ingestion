@@ -42,7 +42,7 @@ class UploadEu(Document):
 
     meta = {
         'indexes': [
-            {'fields': ("country", "to_publish"), 'unique': True}
+            {'fields': ("country", "to_publish")}
         ]
     }
 
