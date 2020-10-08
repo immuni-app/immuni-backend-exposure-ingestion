@@ -40,7 +40,12 @@ class UploadEu(Document):
 
     batch_tag: str = StringField(null=True)
 
-    meta = {"indexes": ["to_publish"]}
+    meta = {
+        'indexes': [
+            {'fields': ("country", "to_publish"), 'unique': True}
+        ]
+    }
+
 
     @classmethod
     def countries_to_process(cls) -> Cursor:
