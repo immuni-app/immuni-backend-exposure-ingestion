@@ -90,9 +90,8 @@ bp = Blueprint("ingestion", url_prefix="ingestion")
     location=Location.JSON,
     province=Province(),
     country_of_interest=fields.List(
-        fields.String(validate=Regexp(r"^[A-Z]{2}$")),
-        required=False,
-        missing=None),
+        fields.String(validate=Regexp(r"^[A-Z]{2}$")), required=False, missing=None
+    ),
     teks=fields.Nested(
         TemporaryExposureKeySchema,
         required=True,

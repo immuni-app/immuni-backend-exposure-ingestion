@@ -40,12 +40,7 @@ class UploadEu(Document):
 
     batch_tag: str = StringField(null=True)
 
-    meta = {
-        'indexes': [
-            {'fields': ("country", "to_publish")}
-        ]
-    }
-
+    meta = {"indexes": [{"fields": ("country", "to_publish")}]}
 
     @classmethod
     def countries_to_process(cls) -> Cursor:
@@ -75,8 +70,8 @@ class UploadEu(Document):
           otherwise.
         """
         return (
-                cls.objects.filter(id__lte=ObjectId.from_datetime(datetime_), to_publish=True).count()
-                > 0
+            cls.objects.filter(id__lte=ObjectId.from_datetime(datetime_), to_publish=True).count()
+            > 0
         )
 
     @classmethod

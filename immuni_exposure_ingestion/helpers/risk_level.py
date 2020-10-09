@@ -84,10 +84,7 @@ def extract_keys_with_risk_level_from_upload_eu(upload: UploadEu) -> Iterable[Te
 
     _LOGGER.info(
         "Extracting keys at risk from upload.",
-        extra=dict(
-            upload_id=str(upload.id),
-            n_keys_upload=len(upload.keys)
-        ),
+        extra=dict(upload_id=str(upload.id), n_keys_upload=len(upload.keys)),
     )
 
     return upload.keys
