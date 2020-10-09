@@ -24,13 +24,18 @@ from immuni_common.models.mongoengine.temporary_exposure_key import TemporaryExp
 from immuni_exposure_ingestion.celery import celery_app
 from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.helpers.lock import lock_concurrency
-from immuni_exposure_ingestion.helpers.risk_level import extract_keys_with_risk_level_from_upload, extract_keys_with_risk_level_from_upload_eu
+from immuni_exposure_ingestion.helpers.risk_level import (
+    extract_keys_with_risk_level_from_upload,
+    extract_keys_with_risk_level_from_upload_eu,
+)
 from immuni_exposure_ingestion.models.upload import Upload
 from immuni_exposure_ingestion.models.upload_eu import UploadEu
 from immuni_exposure_ingestion.monitoring.celery import (
     BATCH_FILES_CREATED,
+    KEYS_EU_PROCESSED,
     KEYS_PROCESSED,
     UPLOADS_ENQUEUED,
+    UPLOADS_EU_ENQUEUED,
 )
 from immuni_exposure_ingestion.protobuf.helpers.generate_zip import batch_to_sdk_zip_file
 
@@ -69,16 +74,17 @@ async def _process_uploads() -> None:
 
 
 def batch_it():
-
+    """
+    Get the unprocessed upload from the upload collection, performs some validations and create
+    multiple batches stored in the batch_file collection.
+    """
     infos = BatchFile.get_latest_info()
     now = datetime.utcnow()
 
     if infos:
         last_period, last_index = infos
     else:
-        last_period = datetime.fromtimestamp(
-            croniter(config.BATCH_PERIODICITY_CRONTAB).get_prev()
-        )
+        last_period = datetime.fromtimestamp(croniter(config.BATCH_PERIODICITY_CRONTAB).get_prev())
         last_index = 0
 
     period_start = last_period
@@ -99,9 +105,7 @@ def batch_it():
         if (reached := len(keys) + len(upload.keys)) > config.MAX_KEYS_PER_BATCH:
             _LOGGER.warning(
                 "Early stop: reached maximum number of keys per batch.",
-                extra=dict(
-                    pre_reached=len(keys), reached=reached, max=config.MAX_KEYS_PER_BATCH
-                ),
+                extra=dict(pre_reached=len(keys), reached=reached, max=config.MAX_KEYS_PER_BATCH),
             )
             break
         keys += extract_keys_with_risk_level_from_upload(upload)
@@ -121,7 +125,7 @@ def batch_it():
             period_end=period_end,
             sub_batch_index=1,
             sub_batch_count=1,
-            origin="IT"
+            origin="IT",
         )
         batch_file.client_content = batch_to_sdk_zip_file(batch_file)
         batch_file.save()
@@ -137,16 +141,17 @@ def batch_it():
 
 
 def batch_eu():
-
+    """
+    Get the unprocessed upload from the upload_eu collection having also the country parameter so to "IT",
+    performs some validations and create multiple batches stored in the batch_file collection.
+    """
     infos = BatchFile.get_latest_info()
     now = datetime.utcnow()
 
     if infos:
         last_period, last_index = infos
     else:
-        last_period = datetime.fromtimestamp(
-            croniter(config.BATCH_PERIODICITY_CRONTAB).get_prev()
-        )
+        last_period = datetime.fromtimestamp(croniter(config.BATCH_PERIODICITY_CRONTAB).get_prev())
         last_index = 0
 
     period_start = last_period
@@ -167,9 +172,7 @@ def batch_eu():
         if (reached := len(keys) + len(upload.keys)) > config.MAX_KEYS_PER_BATCH:
             _LOGGER.warning(
                 "Early stop: reached maximum number of keys per batch.",
-                extra=dict(
-                    pre_reached=len(keys), reached=reached, max=config.MAX_KEYS_PER_BATCH
-                ),
+                extra=dict(pre_reached=len(keys), reached=reached, max=config.MAX_KEYS_PER_BATCH),
             )
             break
         keys += extract_keys_with_risk_level_from_upload_eu(upload)
@@ -190,16 +193,16 @@ def batch_eu():
             sub_batch_index=1,
             sub_batch_count=1,
             origin="EU",
-            batch_tag="KEYS_EU"
+            batch_tag="KEYS_EU",
         )
         batch_file.client_content = batch_to_sdk_zip_file(batch_file)
         batch_file.save()
         _LOGGER.info("Created new batch.", extra=dict(index=index, n_keys=n_keys))
         BATCH_FILES_CREATED.inc()
-        KEYS_PROCESSED.inc(len(keys))
+        KEYS_EU_PROCESSED.inc(len(keys))
 
     UploadEu.set_published(processed_uploads)
     _LOGGER.info(
-        "Flagged uploads as published.", extra=dict(n_processed_uploads=len(processed_uploads))
+        "Flagged EU uploads as published.", extra=dict(n_processed_uploads=len(processed_uploads))
     )
-    UPLOADS_ENQUEUED.set(Upload.to_process().count())
+    UPLOADS_EU_ENQUEUED.set(Upload.to_process().count())

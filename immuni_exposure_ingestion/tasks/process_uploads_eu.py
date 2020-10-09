@@ -27,9 +27,9 @@ from immuni_exposure_ingestion.helpers.lock import lock_concurrency
 from immuni_exposure_ingestion.helpers.risk_level import extract_keys_with_risk_level_from_upload_eu
 from immuni_exposure_ingestion.models.upload_eu import UploadEu
 from immuni_exposure_ingestion.monitoring.celery import (
-    BATCH_FILES_CREATED,
-    KEYS_PROCESSED,
-    UPLOADS_ENQUEUED,
+    BATCH_FILES_EU_CREATED,
+    KEYS_EU_PROCESSED,
+    UPLOADS_EU_ENQUEUED,
 )
 from immuni_exposure_ingestion.protobuf.helpers.generate_zip import batch_to_sdk_zip_file
 
@@ -56,7 +56,7 @@ async def _process_uploads_eu() -> None:
     a single batch, the task will create multiple batches and group them into "sub-batches" instead.
     """
 
-    _LOGGER.info("About to start processing uploads.")
+    _LOGGER.info("About to start processing uploads from EU.")
     # Acquire a lock on redis before processing anything, avoiding concurrent tasks.
     async with lock_concurrency("process_uploads_eu"):
         _LOGGER.info("Obtained lock.")
@@ -65,32 +65,36 @@ async def _process_uploads_eu() -> None:
             batch_eu(country_=country)
         _LOGGER.info("Releasing lock.")
 
-    _LOGGER.info("Upload processing completed successfully.")
+    _LOGGER.info("EU Upload processing completed successfully.")
 
 
 def batch_eu(country_: str):
+    """
+    Get the unprocessed upload from the upload_eu collection for each country, performs some validations and create
+    multiple batches stored in the batch_file_eu collection.
+
+    @param country_: the country of interest
+    """
     infos = BatchFileEu.get_latest_info(country=country_)
     now = datetime.utcnow()
 
     if infos:
         last_period, last_index = infos
     else:
-        last_period = datetime.fromtimestamp(
-            croniter(config.BATCH_PERIODICITY_CRONTAB).get_prev()
-        )
+        last_period = datetime.fromtimestamp(croniter(config.BATCH_PERIODICITY_CRONTAB).get_prev())
         last_index = 0
 
     period_start = last_period
     period_end = now
 
     _LOGGER.info(
-        "Starting to process uploads.",
+        "Starting to process uploads coming from EU.",
         extra=dict(period_start=period_start, period_end=period_end),
     )
 
     uploads = UploadEu.to_process(country_=country_)
 
-    _LOGGER.info("Uploads have been fetched.", extra=dict(n_uploads=uploads.count()))
+    _LOGGER.info("EU Uploads have been fetched.", extra=dict(n_uploads=uploads.count()))
 
     processed_uploads: List[ObjectId] = []
     keys: List[TemporaryExposureKey] = []
@@ -98,9 +102,7 @@ def batch_eu(country_: str):
         if (reached := len(keys) + len(upload.keys)) > config.MAX_KEYS_PER_BATCH:
             _LOGGER.warning(
                 "Early stop: reached maximum number of keys per batch.",
-                extra=dict(
-                    pre_reached=len(keys), reached=reached, max=config.MAX_KEYS_PER_BATCH
-                ),
+                extra=dict(pre_reached=len(keys), reached=reached, max=config.MAX_KEYS_PER_BATCH),
             )
             break
         keys += extract_keys_with_risk_level_from_upload_eu(upload)
@@ -120,16 +122,16 @@ def batch_eu(country_: str):
             period_end=period_end,
             sub_batch_index=1,
             sub_batch_count=1,
-            origin=country_
+            origin=country_,
         )
         batch_file.client_content = batch_to_sdk_zip_file(batch_file)
         batch_file.save()
-        _LOGGER.info("Created new batch.", extra=dict(index=index, n_keys=n_keys))
-        BATCH_FILES_CREATED.inc()
-        KEYS_PROCESSED.inc(len(keys))
+        _LOGGER.info("Created new EU batch.", extra=dict(index=index, n_keys=n_keys))
+        BATCH_FILES_EU_CREATED.inc()
+        KEYS_EU_PROCESSED.inc(len(keys))
 
     UploadEu.set_published(processed_uploads)
     _LOGGER.info(
-        "Flagged uploads as published.", extra=dict(n_processed_uploads=len(processed_uploads))
+        "Flagged EU uploads as published.", extra=dict(n_processed_uploads=len(processed_uploads))
     )
-    #UPLOADS_ENQUEUED.set(UploadEu.to_process(country_=country_).count())
+    UPLOADS_EU_ENQUEUED.set(UploadEu.to_process(country_=country_).count())

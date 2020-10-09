@@ -20,7 +20,12 @@ from immuni_exposure_ingestion.celery import celery_app
 from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.models.upload import Upload
 from immuni_exposure_ingestion.models.upload_eu import UploadEu
-from immuni_exposure_ingestion.monitoring.celery import BATCH_FILES_DELETED, UPLOADS_DELETED
+from immuni_exposure_ingestion.monitoring.celery import (
+    BATCH_FILES_DELETED,
+    BATCH_FILES_EU_DELETED,
+    UPLOADS_DELETED,
+    UPLOADS_EU_DELETED,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -74,5 +79,6 @@ def delete_old_data() -> None:
     )
 
     UPLOADS_DELETED.inc(uploads_deleted)
+    UPLOADS_EU_DELETED.inc(uploads_eu_deleted)
     BATCH_FILES_DELETED.inc(batches_deleted)
-
+    BATCH_FILES_EU_DELETED.inc(batches_eu_deleted)

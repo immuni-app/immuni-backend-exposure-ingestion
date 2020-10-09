@@ -36,7 +36,9 @@ def _get_schedules() -> Tuple[Schedule, ...]:
 
     return (
         Schedule(task=process_uploads, when=string_to_crontab(config.BATCH_PERIODICITY_CRONTAB)),
-        Schedule(task=process_uploads_eu, when=string_to_crontab(config.BATCH_EU_PERIODICITY_CRONTAB)),
+        Schedule(
+            task=process_uploads_eu, when=string_to_crontab(config.BATCH_EU_PERIODICITY_CRONTAB)
+        ),
         Schedule(task=delete_old_data, when=string_to_crontab(config.DELETE_OLD_DATA_CRONTAB)),
     )
 
