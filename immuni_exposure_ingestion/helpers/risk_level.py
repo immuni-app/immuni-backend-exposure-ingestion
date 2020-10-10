@@ -19,7 +19,6 @@ from immuni_common.models.enums import TransmissionRiskLevel
 from immuni_common.models.mongoengine.temporary_exposure_key import TemporaryExposureKey
 from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.models.upload import Upload
-from immuni_exposure_ingestion.models.upload_eu import UploadEu
 
 _LOGGER = logging.getLogger(__name__)
 

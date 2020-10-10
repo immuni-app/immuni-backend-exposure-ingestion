@@ -26,7 +26,6 @@ from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.helpers.lock import lock_concurrency
 from immuni_exposure_ingestion.helpers.risk_level import (
     extract_keys_with_risk_level_from_upload,
-    extract_keys_with_risk_level_from_upload_eu,
     set_highest_risk_level_from_upload)
 from immuni_exposure_ingestion.models.upload import Upload
 from immuni_exposure_ingestion.models.upload_eu import UploadEu
@@ -66,14 +65,14 @@ async def _process_uploads() -> None:
     # Acquire a lock on redis before processing anything, avoiding concurrent tasks.
     async with lock_concurrency("process_uploads"):
         _LOGGER.info("Obtained lock.")
-        batch_it()
-        batch_eu()
+        _batch_it()
+        _batch_eu()
         _LOGGER.info("Releasing lock.")
 
     _LOGGER.info("Upload processing completed successfully.")
 
 
-def batch_it():
+def _batch_it():
     """
     Get the unprocessed upload from the upload collection, performs some validations and create
     multiple batches stored in the batch_file collection.
@@ -140,7 +139,7 @@ def batch_it():
     UPLOADS_ENQUEUED.set(Upload.to_process().count())
 
 
-def batch_eu():
+def _batch_eu():
     """
     Get the unprocessed upload from the upload_eu collection having also the country parameter so to "IT",
     performs some validations and create multiple batches stored in the batch_file collection.
