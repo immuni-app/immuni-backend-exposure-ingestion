@@ -62,16 +62,18 @@ async def _process_uploads_eu() -> None:
         _LOGGER.info("Obtained lock.")
         countries = UploadEu.countries_to_process()
         for country in countries:
-            batch_eu(country_=country)
+            _LOGGER.info("Start processing {} Teks.".format(country))
+            _batch(country_=country)
+            _LOGGER.info("End processing {} Teks.".format(country))
         _LOGGER.info("Releasing lock.")
 
-    _LOGGER.info("EU Upload processing completed successfully.")
+    _LOGGER.info("EU uploads processing completed successfully.")
 
 
-def batch_eu(country_: str):
+def _batch(country_: str):
     """
-    Get the unprocessed upload from the upload_eu collection for each country, performs some validations and create
-    multiple batches stored in the batch_file_eu collection.
+    Get the unprocessed upload from the upload_eu collection for the country of interest, performs some validations
+    and create multiple batches stored in the batch_file_eu collection.
 
     @param country_: the country of interest
     """
@@ -88,20 +90,24 @@ def batch_eu(country_: str):
     period_end = now
 
     _LOGGER.info(
-        "Starting to process uploads coming from EU.",
+        "Starting to process {} uploads.".format(country_),
         extra=dict(period_start=period_start, period_end=period_end),
     )
 
     uploads = UploadEu.to_process(country_=country_)
 
-    _LOGGER.info("EU Uploads have been fetched.", extra=dict(n_uploads=uploads.count()))
+    _LOGGER.info(
+        "{} uploads have been fetched.".format(country_), extra=dict(n_uploads=uploads.count())
+    )
 
     processed_uploads: List[ObjectId] = []
     keys: List[TemporaryExposureKey] = []
     for upload in uploads:
         if (reached := len(keys) + len(upload.keys)) > config.MAX_KEYS_PER_BATCH:
             _LOGGER.warning(
-                "Early stop: reached maximum number of keys per batch.",
+                "Early stop: reached maximum number of keys per batch of {} uploads.".format(
+                    country_
+                ),
                 extra=dict(pre_reached=len(keys), reached=reached, max=config.MAX_KEYS_PER_BATCH),
             )
             break
@@ -126,12 +132,15 @@ def batch_eu(country_: str):
         )
         batch_file.client_content = batch_to_sdk_zip_file(batch_file)
         batch_file.save()
-        _LOGGER.info("Created new EU batch.", extra=dict(index=index, n_keys=n_keys))
+        _LOGGER.info(
+            "Created new {} batch.".format(country_), extra=dict(index=index, n_keys=n_keys)
+        )
         BATCH_FILES_EU_CREATED.inc()
         KEYS_EU_PROCESSED.inc(len(keys))
 
     UploadEu.set_published(processed_uploads)
     _LOGGER.info(
-        "Flagged EU uploads as published.", extra=dict(n_processed_uploads=len(processed_uploads))
+        "Flagged {} uploads as published.".format(country_),
+        extra=dict(n_processed_uploads=len(processed_uploads)),
     )
     UPLOADS_EU_ENQUEUED.set(UploadEu.to_process(country_=country_).count())

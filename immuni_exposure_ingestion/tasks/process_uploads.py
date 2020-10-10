@@ -26,7 +26,8 @@ from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.helpers.lock import lock_concurrency
 from immuni_exposure_ingestion.helpers.risk_level import (
     extract_keys_with_risk_level_from_upload,
-    set_highest_risk_level_from_upload)
+    set_highest_risk_level_from_upload,
+)
 from immuni_exposure_ingestion.models.upload import Upload
 from immuni_exposure_ingestion.models.upload_eu import UploadEu
 from immuni_exposure_ingestion.monitoring.celery import (
@@ -65,8 +66,12 @@ async def _process_uploads() -> None:
     # Acquire a lock on redis before processing anything, avoiding concurrent tasks.
     async with lock_concurrency("process_uploads"):
         _LOGGER.info("Obtained lock.")
+        _LOGGER.info("Start processing italian Teks.")
         _batch_it()
+        _LOGGER.info("End processing italian Teks.")
+        _LOGGER.info("Start processing EU Teks marked as italian.")
         _batch_eu()
+        _LOGGER.info("End processing EU Teks marked as italian.")
         _LOGGER.info("Releasing lock.")
 
     _LOGGER.info("Upload processing completed successfully.")
@@ -74,7 +79,7 @@ async def _process_uploads() -> None:
 
 def _batch_it():
     """
-    Get the unprocessed upload from the upload collection, performs some validations and create
+    Get the unprocessed uploads from the upload collection, performs some validations and create
     multiple batches stored in the batch_file collection.
     """
     infos = BatchFile.get_latest_info()
@@ -90,20 +95,20 @@ def _batch_it():
     period_end = now
 
     _LOGGER.info(
-        "Starting to process uploads.",
+        "Starting to process italian uploads.",
         extra=dict(period_start=period_start, period_end=period_end),
     )
 
     uploads = Upload.to_process()
 
-    _LOGGER.info("Uploads have been fetched.", extra=dict(n_uploads=uploads.count()))
+    _LOGGER.info("Italian uploads have been fetched.", extra=dict(n_uploads=uploads.count()))
 
     processed_uploads: List[ObjectId] = []
     keys: List[TemporaryExposureKey] = []
     for upload in uploads:
         if (reached := len(keys) + len(upload.keys)) > config.MAX_KEYS_PER_BATCH:
             _LOGGER.warning(
-                "Early stop: reached maximum number of keys per batch.",
+                "Early stop: reached maximum number of keys per batch of italian uploads.",
                 extra=dict(pre_reached=len(keys), reached=reached, max=config.MAX_KEYS_PER_BATCH),
             )
             break
@@ -128,20 +133,22 @@ def _batch_it():
         )
         batch_file.client_content = batch_to_sdk_zip_file(batch_file)
         batch_file.save()
-        _LOGGER.info("Created new batch.", extra=dict(index=index, n_keys=n_keys))
+        _LOGGER.info("Created new italian batch.", extra=dict(index=index, n_keys=n_keys))
         BATCH_FILES_CREATED.inc()
         KEYS_PROCESSED.inc(len(keys))
 
     Upload.set_published(processed_uploads)
     _LOGGER.info(
-        "Flagged uploads as published.", extra=dict(n_processed_uploads=len(processed_uploads))
+        "Flagged italian uploads as published.",
+        extra=dict(n_processed_uploads=len(processed_uploads)),
     )
     UPLOADS_ENQUEUED.set(Upload.to_process().count())
 
 
 def _batch_eu():
     """
-    Get the unprocessed upload from the upload_eu collection having also the country parameter so to "IT",
+    Get the unprocessed uploads from the upload_eu collection
+    having also the country parameter set to "IT",
     performs some validations and create multiple batches stored in the batch_file collection.
     """
     infos = BatchFile.get_latest_info()
@@ -157,20 +164,23 @@ def _batch_eu():
     period_end = now
 
     _LOGGER.info(
-        "Starting to process uploads.",
+        "Starting to process EU uploads marked as italian.",
         extra=dict(period_start=period_start, period_end=period_end),
     )
 
     uploads = UploadEu.to_process(country_="IT")
 
-    _LOGGER.info("Uploads have been fetched.", extra=dict(n_uploads=uploads.count()))
+    _LOGGER.info(
+        "EU uploads marked as italian have been fetched.", extra=dict(n_uploads=uploads.count())
+    )
 
     processed_uploads: List[ObjectId] = []
     keys: List[TemporaryExposureKey] = []
     for upload in uploads:
         if (reached := len(keys) + len(upload.keys)) > config.MAX_KEYS_PER_BATCH:
             _LOGGER.warning(
-                "Early stop: reached maximum number of keys per batch.",
+                "Early stop: reached maximum number of keys "
+                "per batch of EU uploads marked as italian.",
                 extra=dict(pre_reached=len(keys), reached=reached, max=config.MAX_KEYS_PER_BATCH),
             )
             break
@@ -196,12 +206,15 @@ def _batch_eu():
         )
         batch_file.client_content = batch_to_sdk_zip_file(batch_file)
         batch_file.save()
-        _LOGGER.info("Created new batch.", extra=dict(index=index, n_keys=n_keys))
+        _LOGGER.info(
+            "Created new UE batch marked as italian.", extra=dict(index=index, n_keys=n_keys)
+        )
         BATCH_FILES_CREATED.inc()
         KEYS_EU_PROCESSED.inc(len(keys))
 
     UploadEu.set_published(processed_uploads)
     _LOGGER.info(
-        "Flagged EU uploads as published.", extra=dict(n_processed_uploads=len(processed_uploads))
+        "Flagged EU uploads marked as italian as published.",
+        extra=dict(n_processed_uploads=len(processed_uploads)),
     )
     UPLOADS_EU_ENQUEUED.set(Upload.to_process().count())
