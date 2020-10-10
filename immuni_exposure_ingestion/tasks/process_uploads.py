@@ -27,7 +27,7 @@ from immuni_exposure_ingestion.helpers.lock import lock_concurrency
 from immuni_exposure_ingestion.helpers.risk_level import (
     extract_keys_with_risk_level_from_upload,
     extract_keys_with_risk_level_from_upload_eu,
-)
+    set_highest_risk_level_from_upload)
 from immuni_exposure_ingestion.models.upload import Upload
 from immuni_exposure_ingestion.models.upload_eu import UploadEu
 from immuni_exposure_ingestion.monitoring.celery import (
@@ -175,7 +175,7 @@ def batch_eu():
                 extra=dict(pre_reached=len(keys), reached=reached, max=config.MAX_KEYS_PER_BATCH),
             )
             break
-        keys += extract_keys_with_risk_level_from_upload_eu(upload)
+        keys += set_highest_risk_level_from_upload(upload.keys)
         processed_uploads.append(upload.id)
 
     if (n_keys := len(keys)) > 0:

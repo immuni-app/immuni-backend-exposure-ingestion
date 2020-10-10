@@ -29,7 +29,7 @@ from immuni_common.helpers.swagger import doc_exception
 from immuni_common.helpers.utils import WeightedPayload
 from immuni_common.models.dataclasses import ExposureDetectionSummary
 from immuni_common.models.enums import Location
-from immuni_common.models.marshmallow.fields import Province
+from immuni_common.models.marshmallow.fields import Province, Countries
 from immuni_common.models.marshmallow.schemas import (
     ExposureDetectionSummarySchema,
     TemporaryExposureKeySchema,
@@ -89,9 +89,7 @@ bp = Blueprint("ingestion", url_prefix="ingestion")
 @validate(
     location=Location.JSON,
     province=Province(),
-    countries_of_interest=fields.List(
-        fields.String(validate=Regexp(r"^[A-Z]{2}$")), required=False, missing=None
-    ),
+    countries_of_interest=Countries(),
     teks=fields.Nested(
         TemporaryExposureKeySchema,
         required=True,

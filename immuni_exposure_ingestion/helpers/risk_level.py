@@ -42,8 +42,7 @@ def extract_keys_with_risk_level_from_upload(upload: Upload) -> Iterable[Tempora
 
     keys_at_risk = [key for key in upload.keys if key.created_at.date() >= first_risky_time]
 
-    for key in keys_at_risk:
-        key.transmission_risk_level = TransmissionRiskLevel.highest
+    keys_at_risk = set_highest_risk_level_from_upload(keys_at_risk)
 
     # TODO: Handle current day TEKs (if any) instead of discarding them.
     keys_at_risk_filtered = (
@@ -67,24 +66,13 @@ def extract_keys_with_risk_level_from_upload(upload: Upload) -> Iterable[Tempora
     return keys_at_risk_filtered
 
 
-def extract_keys_with_risk_level_from_upload_eu(upload: UploadEu) -> Iterable[TemporaryExposureKey]:
+def set_highest_risk_level_from_upload(keys: Iterable[TemporaryExposureKey]) -> Iterable[TemporaryExposureKey]:
     """
-    Return the keys of the given upload that are considered at risk of transmission.
-    The algorithm currently considers at maximum risk all of the keys created after two days before
-    the symptoms started.
-
-    It will also remove any keys that might still be valid.
-
-    :param upload: the upload whose keys are to be extracted from.
-    :return: the list of the given upload's keys that are considered at risk of transmission.
+    :param keys: the keys from the upload.
+    :return: the list of the given keys with risk of transmission set to highest.
     """
 
-    for key in upload.keys:
+    for key in keys:
         key.transmission_risk_level = TransmissionRiskLevel.highest
 
-    _LOGGER.info(
-        "Extracting keys at risk from upload.",
-        extra=dict(upload_id=str(upload.id), n_keys_upload=len(upload.keys)),
-    )
-
-    return upload.keys
+    return keys
