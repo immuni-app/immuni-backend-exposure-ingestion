@@ -93,13 +93,13 @@ SIGNATURE_SERVICE_CA_BUNDLE: str = config("SIGNATURE_SERVICE_CA_BUNDLE", default
 BATCH_PERIODICITY_CRONTAB: str = config(
     "BATCH_PERIODICITY_CRONTAB",
     cast=validate_crontab("BATCH_PERIODICITY_CRONTAB"),
-    default="*/5 * * * *",
+    default="0 0 * * *",
 )
 
 BATCH_EU_PERIODICITY_CRONTAB: str = config(
     "BATCH_EU_PERIODICITY_CRONTAB",
     cast=validate_crontab("BATCH_EU_PERIODICITY_CRONTAB"),
-    default="*/5 * * * *",
+    default="0 0 * * *",
 )
 
 DELETE_OLD_DATA_CRONTAB: str = config(
