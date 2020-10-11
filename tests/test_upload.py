@@ -157,6 +157,18 @@ async def test_invalid_province(
     assert data["message"] == "Request not compliant with the defined schema."
 
 
+@pytest.mark.parametrize("countries_of_interest", [["DEN", "ES"], ["DE", "PL", "fff"]])
+async def test_invalid_countries(
+    client: TestClient, upload_data: Dict, countries_of_interest: list, headers: Dict[str, str]
+) -> None:
+    upload_data["countries_of_interest"] = countries_of_interest
+    headers.update(CONTENT_TYPE_HEADER)
+    response = await client.post("/v1/ingestion/upload", json=upload_data, headers=headers)
+    assert response.status == 400
+    data = await response.json()
+    assert data["message"] == "Request not compliant with the defined schema."
+
+
 @pytest.mark.parametrize("dummy_header", ["other", "boh", ""])
 async def test_upload_bad_request_dummy_header(
     client: TestClient, upload_data: Dict, dummy_header: str, headers: Dict[str, str]
@@ -255,7 +267,6 @@ async def test_upload_too_many_keys(
 async def test_upload_invalid_start_numbers(
     client: TestClient, otp: OtpData, auth_headers: Dict[str, str], upload_data: Dict,
 ) -> None:
-
     upload_data["teks"][1]["rolling_start_number"] = (
         upload_data["teks"][1]["rolling_start_number"] + 10
     )
@@ -310,7 +321,6 @@ async def test_upload_otp_complete(
     include_teks: bool,
     remove_tek: Optional[int],
 ) -> None:
-
     otp_sha = sha256("12345".encode("utf-8")).hexdigest()
 
     if not include_infos:
