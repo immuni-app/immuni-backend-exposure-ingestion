@@ -33,7 +33,6 @@ class UploadEu(Document):
 
     to_publish = BooleanField(default=True)
     keys = EmbeddedDocumentListField(TemporaryExposureKey, required=False, default=[])
-    symptoms_started_on = DateField(required=True)
     country = StringField(required=True)
 
     origin: str = StringField(required=True)
