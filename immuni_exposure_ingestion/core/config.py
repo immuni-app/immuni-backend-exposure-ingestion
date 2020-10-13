@@ -64,7 +64,7 @@ DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT: int = config(
 # Yet, since the upload could fail (e.g., connection error), there could be multiple TEKs per day.
 # Following Google's suggestion, some slack is given here by setting it to 30.
 MAX_KEYS_PER_UPLOAD: int = config("MAX_KEYS_PER_UPLOAD", cast=int, default=30)
-MAX_KEYS_PER_BATCH: int = config("MAX_KEYS_PER_BATCH", cast=int, default=30)
+MAX_KEYS_PER_BATCH: int = config("MAX_KEYS_PER_BATCH", cast=int, default=10000)
 
 DAYS_BEFORE_SYMPTOMS_TO_CONSIDER_KEY_AT_RISK: int = config(
     "DAYS_BEFORE_SYMPTOMS_TO_CONSIDER_KEY_AT_RISK", cast=int, default=2

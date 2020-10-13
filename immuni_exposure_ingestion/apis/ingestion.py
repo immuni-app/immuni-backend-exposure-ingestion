@@ -146,7 +146,7 @@ async def upload(  # pylint: disable=too-many-arguments
     otp = await validate_otp_token(request.token, delete=True)
 
     upload_model.symptoms_started_on = otp.symptoms_started_on
-    # for each keys add the country of interest list coming from the upload request
+
     for key in upload_model.keys:
         key.countries_of_interest = countries_of_interest
 

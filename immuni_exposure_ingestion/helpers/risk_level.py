@@ -69,6 +69,8 @@ def set_highest_risk_level_from_upload(
     keys: Iterable[TemporaryExposureKey],
 ) -> Iterable[TemporaryExposureKey]:
     """
+    Returns the list of keys each with "transmission_risk_level" set to highest.
+
     :param keys: the keys from the upload.
     :return: the list of the given keys with risk of transmission set to highest.
     """
@@ -76,4 +78,3 @@ def set_highest_risk_level_from_upload(
     for key in keys:
         key.transmission_risk_level = TransmissionRiskLevel.highest
 
-    return keys
