@@ -66,7 +66,7 @@ def extract_keys_with_risk_level_from_upload(upload: Upload) -> Iterable[Tempora
 
 
 def set_highest_risk_level_from_upload(
-    keys: Iterable[TemporaryExposureKey],
+        keys: Iterable[TemporaryExposureKey],
 ) -> Iterable[TemporaryExposureKey]:
     """
     Returns the list of keys each with "transmission_risk_level" set to highest.
@@ -78,3 +78,4 @@ def set_highest_risk_level_from_upload(
     for key in keys:
         key.transmission_risk_level = TransmissionRiskLevel.highest
 
+    return keys

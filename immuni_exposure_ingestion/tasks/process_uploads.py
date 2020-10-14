@@ -129,7 +129,6 @@ def _batch_it():
             period_end=period_end,
             sub_batch_index=1,
             sub_batch_count=1,
-            origin="IT",
         )
         batch_file.client_content = batch_to_sdk_zip_file(batch_file)
         batch_file.save()
