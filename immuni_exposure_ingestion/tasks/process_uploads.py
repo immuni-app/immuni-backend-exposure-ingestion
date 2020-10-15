@@ -26,7 +26,7 @@ from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.helpers.lock import lock_concurrency
 from immuni_exposure_ingestion.helpers.risk_level import (
     extract_keys_with_risk_level_from_upload,
-    set_highest_risk_level_from_upload,
+    set_highest_risk_level,
 )
 from immuni_exposure_ingestion.models.upload import Upload
 from immuni_exposure_ingestion.models.upload_eu import UploadEu
@@ -59,29 +59,34 @@ async def _process_uploads() -> None:
     some minor validations.
 
     If the number of keys in the given uploads is greater than the maximum number of keys allowed in
-    a single batch, the task will create multiple batches and group them into "sub-batches" instead.
+    a single batch, the task will create create a batch, and leave the remaining keys to be
+    processed on another run of this method.
     """
 
     _LOGGER.info("About to start processing uploads.")
     # Acquire a lock on redis before processing anything, avoiding concurrent tasks.
     async with lock_concurrency("process_uploads"):
         _LOGGER.info("Obtained lock.")
-        _LOGGER.info("Start processing italian Teks.")
-        _batch_it()
-        _LOGGER.info("End processing italian Teks.")
-        _LOGGER.info("Start processing EU Teks marked as italian.")
-        _batch_eu()
-        _LOGGER.info("End processing EU Teks marked as italian.")
+        _create_batch_it()
+        _create_batch_eu()
         _LOGGER.info("Releasing lock.")
 
     _LOGGER.info("Upload processing completed successfully.")
 
 
-def _batch_it():
+def _create_batch_it():
     """
     Get the unprocessed uploads from the upload collection, performs some validations and create
-    multiple batches stored in the batch_file collection.
+    a batch. When the maximum number of keys for a single batch is reached, create the batch,
+    and leave the remaining keys to be processed on another run of this method.
+
+    NOTE: The current maximum, and the number of nowadays keys do not require the
+      generation of multiple batches in a single run of this method.
+      This assumption may fall in the future, and we should monitor no queue of
+      unprocessed keys will ever get stuck.
     """
+    _LOGGER.info("Start processing italian TEKs.")
+
     infos = BatchFile.get_latest_info()
     now = datetime.utcnow()
 
@@ -143,13 +148,25 @@ def _batch_it():
     )
     UPLOADS_ENQUEUED.set(Upload.to_process().count())
 
+    _LOGGER.info("End processing italian TEKs.")
 
-def _batch_eu():
+
+def _create_batch_eu():
     """
-    Get the unprocessed uploads from the upload_eu collection
-    having also the country parameter set to "IT",
-    performs some validations and create multiple batches stored in the batch_file collection.
+    This method processes the keys of the foreign citizens that have set in their own app "Italy"
+    as a country of interest. Get the unprocessed uploads downloaded from the european federation
+    gateway service stored in the upload_eu collection having the country field set to "IT",
+    performs some validations and create a batch. When the maximum number of keys for a single
+    batch is reached, create the batch, and leave the remaining keys to be processed on another
+    run of this method.
+
+    NOTE: The current maximum, and the number of nowadays keys do not require the
+      generation of multiple batches in a single run of this method.
+      This assumption may fall in the future, and we should monitor no queue of
+      unprocessed keys will ever get stuck.
     """
+    _LOGGER.info("Start processing EU TEKs marked as italian.")
+
     infos = BatchFile.get_latest_info()
     now = datetime.utcnow()
 
@@ -183,7 +200,7 @@ def _batch_eu():
                 extra=dict(pre_reached=len(keys), reached=reached, max=config.MAX_KEYS_PER_BATCH),
             )
             break
-        keys += set_highest_risk_level_from_upload(upload.keys)
+        keys += set_highest_risk_level(upload.keys)
         processed_uploads.append(upload.id)
 
     if (n_keys := len(keys)) > 0:
@@ -217,3 +234,5 @@ def _batch_eu():
         extra=dict(n_processed_uploads=len(processed_uploads)),
     )
     UPLOADS_EU_ENQUEUED.set(Upload.to_process().count())
+
+    _LOGGER.info("End processing EU TEKs marked as italian.")

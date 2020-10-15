@@ -24,7 +24,7 @@ from immuni_common.models.mongoengine.temporary_exposure_key import TemporaryExp
 from immuni_exposure_ingestion.celery import celery_app
 from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.helpers.lock import lock_concurrency
-from immuni_exposure_ingestion.helpers.risk_level import set_highest_risk_level_from_upload
+from immuni_exposure_ingestion.helpers.risk_level import set_highest_risk_level
 from immuni_exposure_ingestion.models.upload_eu import UploadEu
 from immuni_exposure_ingestion.monitoring.celery import (
     BATCH_FILES_EU_CREATED,
@@ -53,30 +53,30 @@ async def _process_uploads_eu() -> None:
     some minor validations.
 
     If the number of keys in the given uploads is greater than the maximum number of keys allowed in
-    a single batch, the task will create multiple batches and group them into "sub-batches" instead.
+    a single batch, the task will create create a batch, and leave the remaining keys to be
+    processed on another run of this method.
     """
 
     _LOGGER.info("About to start processing uploads from EU.")
     # Acquire a lock on redis before processing anything, avoiding concurrent tasks.
     async with lock_concurrency("process_uploads_eu"):
         _LOGGER.info("Obtained lock.")
-        countries = UploadEu.countries_to_process()
-        for country in countries:
-            _LOGGER.info("Start processing {} Teks.".format(country))
-            _batch(country_=country)
-            _LOGGER.info("End processing {} Teks.".format(country))
+        for country in UploadEu.countries_to_process():
+            _create_batch(country_=country)
         _LOGGER.info("Releasing lock.")
 
     _LOGGER.info("EU uploads processing completed successfully.")
 
 
-def _batch(country_: str):
+def _create_batch(country_: str):
     """
     Get the unprocessed upload from the upload_eu collection for the country of interest, performs some validations
     and create multiple batches stored in the batch_file_eu collection.
 
     @param country_: the country of interest
     """
+    _LOGGER.info("Start processing {} TEKs.".format(country_))
+
     infos = BatchFileEu.get_latest_info(country=country_)
     now = datetime.utcnow()
 
@@ -111,7 +111,7 @@ def _batch(country_: str):
                 extra=dict(pre_reached=len(keys), reached=reached, max=config.MAX_KEYS_PER_BATCH),
             )
             break
-        keys += set_highest_risk_level_from_upload(upload.keys)
+        keys += set_highest_risk_level(upload.keys)
         processed_uploads.append(upload.id)
 
     if (n_keys := len(keys)) > 0:
@@ -144,3 +144,5 @@ def _batch(country_: str):
         extra=dict(n_processed_uploads=len(processed_uploads)),
     )
     UPLOADS_EU_ENQUEUED.set(UploadEu.to_process(country_=country_).count())
+
+    _LOGGER.info("End processing {} TEKs.".format(country_))
