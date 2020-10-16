@@ -74,7 +74,7 @@ async def _process_uploads() -> None:
     _LOGGER.info("Upload processing completed successfully.")
 
 
-def _create_batch_it():
+def _create_batch_it() -> None:
     """
     Get the unprocessed uploads from the upload collection, performs some validations and create
     a batch. When the maximum number of keys for a single batch is reached, create the batch,
@@ -151,7 +151,7 @@ def _create_batch_it():
     _LOGGER.info("End processing italian TEKs.")
 
 
-def _create_batch_eu():
+def _create_batch_eu() -> None:
     """
     This method processes the keys of the foreign citizens that have set in their own app "Italy"
     as a country of interest. Get the unprocessed uploads downloaded from the european federation

@@ -68,7 +68,7 @@ async def _process_uploads_eu() -> None:
     _LOGGER.info("EU uploads processing completed successfully.")
 
 
-def _create_batch(country_: str):
+def _create_batch(country_: str) -> None:
     """
     Get the unprocessed upload from the upload_eu collection for the country of interest,
     performs some validations and create multiple batches stored in the batch_file_eu collection.
