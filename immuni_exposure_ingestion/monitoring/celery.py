@@ -70,5 +70,5 @@ UPLOADS_EU_ENQUEUED = Gauge(
     subsystem=Subsystem.API.value,
     name="uploads_eu_enqueued",
     documentation="Total number of Uploads coming from EU still to be processed after completing "
-                  "a BatchFileEu.",
+    "a BatchFileEu.",
 )

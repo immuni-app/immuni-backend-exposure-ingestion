@@ -68,8 +68,8 @@ async def test_process_uploads_eu_simple() -> None:
 
         batch_file_eu = BatchFileEu.objects.first()
         assert batch_file_eu.index == 1
-        # with respect to the _process_upload with should obtain 14*5 keys because we did not perform any validation,
-        # we accept all the TEKs
+        # with respect to the _process_upload with should obtain 14*5 keys because we did not
+        # perform any validation, we accept all the TEKs
         assert len(batch_file_eu.keys) == 70
 
         assert batch_file_eu.sub_batch_index == 1

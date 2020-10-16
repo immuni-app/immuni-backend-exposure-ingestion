@@ -56,8 +56,9 @@ async def test_process_uploads_simple() -> None:
         generate_random_uploads(
             5, start_time=current_time - timedelta(hours=4), end_time=current_time,
         )
-        # generate sample uploads coming from European federation gateway service and to be sent to all Italian users
-        # useful to test also the _batch_eu method inside the process_upload task
+        # generate sample uploads coming from European federation gateway service and to be sent
+        # to all Italian users, useful to test also the _batch_eu method inside the
+        # process_upload task
         generate_random_uploads_eu_to_it(
             1, start_time=current_time, end_time=current_time + timedelta(hours=4),
         )
@@ -124,8 +125,9 @@ async def test_process_uploads_advanced(prehash: bool) -> None:
         generate_random_uploads(
             20, start_time=current_time, end_time=current_time + timedelta(hours=4),
         )
-        # generate sample uploads coming from European federation gateway service and to be sent to all Italian users
-        # useful to test also the _batch_eu method inside the process_upload task
+        # generate sample uploads coming from European federation gateway service and to be sent
+        # to all Italian users, useful to test also the _batch_eu method inside the
+        # process_upload task
         generate_random_uploads_eu_to_it(
             5, start_time=current_time, end_time=current_time + timedelta(hours=4),
         )
@@ -180,8 +182,9 @@ async def test_process_uploads_does_not_include_todays_keys() -> None:
         generate_random_uploads(
             5, start_time=current_time - timedelta(hours=4), end_time=current_time,
         )
-        # generate sample uploads coming from European federation gateway service and to be sent to all Italian users
-        # useful to test also the _batch_eu method inside the process_upload task
+        # generate sample uploads coming from European federation gateway service and to be sent
+        # to all Italian users, useful to test also the _batch_eu method inside the
+        # process_upload task
         generate_random_uploads_eu_to_it(
             5, start_time=current_time, end_time=current_time + timedelta(hours=4),
         )

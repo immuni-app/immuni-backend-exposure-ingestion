@@ -75,7 +75,7 @@ def _create_batch(country_: str):
 
     @param country_: the country of interest
     """
-    _LOGGER.info("Start processing {} TEKs.".format(country_))
+    _LOGGER.info("Start processing %s TEKs.", country_)
 
     infos = BatchFileEu.get_latest_info(country=country_)
     now = datetime.utcnow()
@@ -90,24 +90,22 @@ def _create_batch(country_: str):
     period_end = now
 
     _LOGGER.info(
-        "Starting to process {} uploads.".format(country_),
+        "Starting to process %s uploads.",
+        country_,
         extra=dict(period_start=period_start, period_end=period_end),
     )
 
     uploads = UploadEu.to_process(country_=country_)
 
-    _LOGGER.info(
-        "{} uploads have been fetched.".format(country_), extra=dict(n_uploads=uploads.count())
-    )
+    _LOGGER.info("%s uploads have been fetched.", country_, extra=dict(n_uploads=uploads.count()))
 
     processed_uploads: List[ObjectId] = []
     keys: List[TemporaryExposureKey] = []
     for upload in uploads:
         if (reached := len(keys) + len(upload.keys)) > config.MAX_KEYS_PER_BATCH:
             _LOGGER.warning(
-                "Early stop: reached maximum number of keys per batch of {} uploads.".format(
-                    country_
-                ),
+                "Early stop: reached maximum number of keys per batch of %s uploads.",
+                country_,
                 extra=dict(pre_reached=len(keys), reached=reached, max=config.MAX_KEYS_PER_BATCH),
             )
             break
@@ -133,17 +131,16 @@ def _create_batch(country_: str):
         )
         batch_file.client_content = batch_to_sdk_zip_file(batch_file)
         batch_file.save()
-        _LOGGER.info(
-            "Created new {} batch.".format(country_), extra=dict(index=index, n_keys=n_keys)
-        )
+        _LOGGER.info("Created new %s batch.", country_, extra=dict(index=index, n_keys=n_keys))
         BATCH_FILES_EU_CREATED.inc()
         KEYS_EU_PROCESSED.inc(len(keys))
 
     UploadEu.set_published(processed_uploads)
     _LOGGER.info(
-        "Flagged {} uploads as published.".format(country_),
+        "Flagged %s uploads as published.",
+        country_,
         extra=dict(n_processed_uploads=len(processed_uploads)),
     )
     UPLOADS_EU_ENQUEUED.set(UploadEu.to_process(country_=country_).count())
 
-    _LOGGER.info("End processing {} TEKs.".format(country_))
+    _LOGGER.info("End processing %s TEKs.", country_)
