@@ -18,7 +18,7 @@ from datetime import datetime
 from typing import List
 
 from bson import ObjectId
-from mongoengine import BooleanField, DateField, Document, EmbeddedDocumentListField, StringField
+from mongoengine import BooleanField, Document, EmbeddedDocumentListField, StringField
 from pymongo.cursor import Cursor
 
 from immuni_common.models.mongoengine.temporary_exposure_key import TemporaryExposureKey

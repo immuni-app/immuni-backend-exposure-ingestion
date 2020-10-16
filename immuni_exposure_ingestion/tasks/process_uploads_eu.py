@@ -70,8 +70,8 @@ async def _process_uploads_eu() -> None:
 
 def _create_batch(country_: str):
     """
-    Get the unprocessed upload from the upload_eu collection for the country of interest, performs some validations
-    and create multiple batches stored in the batch_file_eu collection.
+    Get the unprocessed upload from the upload_eu collection for the country of interest,
+    performs some validations and create multiple batches stored in the batch_file_eu collection.
 
     @param country_: the country of interest
     """
@@ -111,7 +111,8 @@ def _create_batch(country_: str):
                 extra=dict(pre_reached=len(keys), reached=reached, max=config.MAX_KEYS_PER_BATCH),
             )
             break
-        keys += set_highest_risk_level(upload.keys)
+        set_highest_risk_level(upload.keys)
+        keys += upload.keys
         processed_uploads.append(upload.id)
 
     if (n_keys := len(keys)) > 0:

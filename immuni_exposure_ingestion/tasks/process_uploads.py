@@ -200,7 +200,8 @@ def _create_batch_eu():
                 extra=dict(pre_reached=len(keys), reached=reached, max=config.MAX_KEYS_PER_BATCH),
             )
             break
-        keys += set_highest_risk_level(upload.keys)
+        set_highest_risk_level(upload.keys)
+        keys += upload.keys
         processed_uploads.append(upload.id)
 
     if (n_keys := len(keys)) > 0:

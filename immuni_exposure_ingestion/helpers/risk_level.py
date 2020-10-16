@@ -40,8 +40,7 @@ def extract_keys_with_risk_level_from_upload(upload: Upload) -> Iterable[Tempora
     )
 
     keys_at_risk = [key for key in upload.keys if key.created_at.date() >= first_risky_time]
-
-    keys_at_risk = set_highest_risk_level(keys_at_risk)
+    set_highest_risk_level(keys_at_risk)
 
     # TODO: Handle current day TEKs (if any) instead of discarding them.
     keys_at_risk_filtered = (
@@ -75,5 +74,3 @@ def set_highest_risk_level(keys: Iterable[TemporaryExposureKey],) -> Iterable[Te
 
     for key in keys:
         key.transmission_risk_level = TransmissionRiskLevel.highest
-
-    return keys
