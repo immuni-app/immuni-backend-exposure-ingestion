@@ -29,7 +29,7 @@ from immuni_common.helpers.swagger import doc_exception
 from immuni_common.helpers.utils import WeightedPayload
 from immuni_common.models.dataclasses import ExposureDetectionSummary
 from immuni_common.models.enums import Location
-from immuni_common.models.marshmallow.fields import Province
+from immuni_common.models.marshmallow.fields import Countries, Province
 from immuni_common.models.marshmallow.schemas import (
     ExposureDetectionSummarySchema,
     TemporaryExposureKeySchema,
@@ -89,6 +89,7 @@ bp = Blueprint("ingestion", url_prefix="ingestion")
 @validate(
     location=Location.JSON,
     province=Province(),
+    countries_of_interest=Countries(),
     teks=fields.Nested(
         TemporaryExposureKeySchema,
         required=True,
@@ -110,6 +111,7 @@ bp = Blueprint("ingestion", url_prefix="ingestion")
 async def upload(  # pylint: disable=too-many-arguments
     request: Request,
     province: str,
+    countries_of_interest: List[str],
     teks: List[TemporaryExposureKey],
     exposure_detection_summaries: List[ExposureDetectionSummary],
     client_clock: int,
@@ -120,6 +122,7 @@ async def upload(  # pylint: disable=too-many-arguments
 
     :param request: the HTTP request object.
     :param province: the user's Province of Domicile.
+    :param countries_of_interest: the list of countries set by the user as visited.
     :param teks: the list of TEKs.
     :param exposure_detection_summaries: the Epidemiological Info of the last 14 days, if any.
     :param client_clock: the clock on client's side, validated, but ignored.
@@ -143,6 +146,10 @@ async def upload(  # pylint: disable=too-many-arguments
     otp = await validate_otp_token(request.token, delete=True)
 
     upload_model.symptoms_started_on = otp.symptoms_started_on
+
+    for key in upload_model.keys:
+        key.countries_of_interest = countries_of_interest
+
     upload_model.save()
 
     _LOGGER.info("Created new upload.", extra=dict(n_teks=len(teks)))

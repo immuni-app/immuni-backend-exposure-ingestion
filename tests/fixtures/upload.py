@@ -21,6 +21,7 @@ from freezegun import freeze_time
 from immuni_common.models.mongoengine.temporary_exposure_key import TemporaryExposureKey
 from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.models.upload import Upload
+from immuni_exposure_ingestion.models.upload_eu import UploadEu
 
 
 def generate_random_key_data(size_bytes: int = 16) -> str:
@@ -62,5 +63,42 @@ def generate_random_uploads(n: int, *, start_time: datetime, end_time: datetime)
                 to_publish=True,
                 keys=generate_batch_of_keys(),
                 symptoms_started_on=date.today() - timedelta(days=7),
+            ).save()
+            time.tick(interval)
+
+
+def generate_random_uploads_eu(n: int, *, start_time: datetime, end_time: datetime) -> None:
+    """
+    Generates a uniformly distributed number of EU uploads during the given start and end time.
+    Each download will contain the maximum configured number of keys (default: 14).
+
+    Each download will have a symptoms_started_on date of 7 days ago. This means that each upload
+    should contribute to 10 keys exactly, since two days before 7 days ago is 9 days ago, and
+    including today's key, we get 10 keys.
+    """
+    interval = timedelta(seconds=(end_time - start_time).total_seconds() / n)
+    with freeze_time(start_time) as time:
+        for i in range(n):
+            UploadEu(
+                to_publish=True, keys=generate_batch_of_keys(), country="DK", origin="PL",
+            ).save()
+            time.tick(interval)
+
+
+# generate uploads coming from European federation gateway service to be sent to Italian users
+def generate_random_uploads_eu_to_it(n: int, *, start_time: datetime, end_time: datetime) -> None:
+    """
+    Generates a uniformly distributed number of EU uploads during the given start and end time.
+    Each download will contain the maximum configured number of keys (default: 14).
+
+    Each download will have a symptoms_started_on date of 7 days ago. This means that each upload
+    should contribute to 10 keys exactly, since two days before 7 days ago is 9 days ago, and
+    including today's key, we get 10 keys.
+    """
+    interval = timedelta(seconds=(end_time - start_time).total_seconds() / n)
+    with freeze_time(start_time) as time:
+        for i in range(n):
+            UploadEu(
+                to_publish=True, keys=generate_batch_of_keys(), country="IT", origin="DE",
             ).save()
             time.tick(interval)

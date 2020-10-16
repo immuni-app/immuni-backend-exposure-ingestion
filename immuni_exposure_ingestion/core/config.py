@@ -95,6 +95,13 @@ BATCH_PERIODICITY_CRONTAB: str = config(
     cast=validate_crontab("BATCH_PERIODICITY_CRONTAB"),
     default="0 0 * * *",
 )
+
+BATCH_EU_PERIODICITY_CRONTAB: str = config(
+    "BATCH_EU_PERIODICITY_CRONTAB",
+    cast=validate_crontab("BATCH_EU_PERIODICITY_CRONTAB"),
+    default="0 0 * * *",
+)
+
 DELETE_OLD_DATA_CRONTAB: str = config(
     "DELETE_OLD_DATA_CRONTAB", cast=validate_crontab("DELETE_OLD_DATA_CRONTAB"), default="0 0 * * *"
 )

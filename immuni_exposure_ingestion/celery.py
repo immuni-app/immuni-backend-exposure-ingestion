@@ -31,10 +31,14 @@ def _get_schedules() -> Tuple[Schedule, ...]:
     :return: the tuple of tasks schedules.
     """
     from immuni_exposure_ingestion.tasks.process_uploads import process_uploads
+    from immuni_exposure_ingestion.tasks.process_uploads_eu import process_uploads_eu
     from immuni_exposure_ingestion.tasks.delete_old_data import delete_old_data
 
     return (
         Schedule(task=process_uploads, when=string_to_crontab(config.BATCH_PERIODICITY_CRONTAB)),
+        Schedule(
+            task=process_uploads_eu, when=string_to_crontab(config.BATCH_EU_PERIODICITY_CRONTAB)
+        ),
         Schedule(task=delete_old_data, when=string_to_crontab(config.DELETE_OLD_DATA_CRONTAB)),
     )
 

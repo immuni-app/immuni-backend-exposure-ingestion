@@ -33,7 +33,7 @@ from immuni_exposure_ingestion.protobuf.models.schema_v1_pb2 import (
 )
 from immuni_exposure_ingestion.tasks.process_uploads import _process_uploads
 from tests.fixtures.external_signature import mock_external_response
-from tests.fixtures.upload import generate_random_uploads
+from tests.fixtures.upload import generate_random_uploads, generate_random_uploads_eu_to_it
 
 
 async def test_lock() -> None:
@@ -56,6 +56,12 @@ async def test_process_uploads_simple() -> None:
         generate_random_uploads(
             5, start_time=current_time - timedelta(hours=4), end_time=current_time,
         )
+        # generate sample uploads coming from European federation gateway service and to be sent
+        # to all Italian users, useful to test also the _batch_eu method inside the
+        # process_upload task
+        generate_random_uploads_eu_to_it(
+            1, start_time=current_time, end_time=current_time + timedelta(hours=4),
+        )
 
         assert BatchFile.objects.count() == 0
 
@@ -65,7 +71,7 @@ async def test_process_uploads_simple() -> None:
             await _process_uploads()
             assert mock_logger.warning.call_count == 0
 
-        assert BatchFile.objects.count() == 1
+        assert BatchFile.objects.count() == 2
 
         batch_file = BatchFile.objects.first()
         assert batch_file.index == 1
@@ -119,6 +125,12 @@ async def test_process_uploads_advanced(prehash: bool) -> None:
         generate_random_uploads(
             20, start_time=current_time, end_time=current_time + timedelta(hours=4),
         )
+        # generate sample uploads coming from European federation gateway service and to be sent
+        # to all Italian users, useful to test also the _batch_eu method inside the
+        # process_upload task
+        generate_random_uploads_eu_to_it(
+            5, start_time=current_time, end_time=current_time + timedelta(hours=4),
+        )
 
         assert BatchFile.objects.count() == 0
 
@@ -128,7 +140,7 @@ async def test_process_uploads_advanced(prehash: bool) -> None:
             await _process_uploads()
             assert mock_logger.warning.call_count == 1
 
-        assert BatchFile.objects.count() == 1
+        assert BatchFile.objects.count() == 2
 
         with freeze_time(current_time + timedelta(hours=4)), patch(
             "immuni_exposure_ingestion.tasks.process_uploads._LOGGER"
@@ -136,7 +148,7 @@ async def test_process_uploads_advanced(prehash: bool) -> None:
             await _process_uploads()
             assert mock_logger.warning.call_count == 1
 
-        assert BatchFile.objects.count() == 2
+        assert BatchFile.objects.count() == 3
 
         batches = list(BatchFile.objects.order_by("index").all())
 
@@ -146,7 +158,7 @@ async def test_process_uploads_advanced(prehash: bool) -> None:
 
         # 100 keys in total, first batch gets max (90), the other gets 10
         assert len(batches[0].keys) == 80
-        assert len(batches[1].keys) == 80
+        assert len(batches[1].keys) == 70
 
         assert batches[0].sub_batch_index == 1
         assert batches[1].sub_batch_index == 1
@@ -170,6 +182,12 @@ async def test_process_uploads_does_not_include_todays_keys() -> None:
         generate_random_uploads(
             5, start_time=current_time - timedelta(hours=4), end_time=current_time,
         )
+        # generate sample uploads coming from European federation gateway service and to be sent
+        # to all Italian users, useful to test also the _batch_eu method inside the
+        # process_upload task
+        generate_random_uploads_eu_to_it(
+            5, start_time=current_time, end_time=current_time + timedelta(hours=4),
+        )
 
         assert BatchFile.objects.count() == 0
 
@@ -179,7 +197,7 @@ async def test_process_uploads_does_not_include_todays_keys() -> None:
             await _process_uploads()
             assert mock_logger.warning.call_count == 0
 
-        assert BatchFile.objects.count() == 1
+        assert BatchFile.objects.count() == 2
 
         batch_file = BatchFile.objects.first()
 
