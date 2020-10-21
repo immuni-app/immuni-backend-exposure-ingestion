@@ -48,7 +48,7 @@ class UploadEu(Document):
 
         :return: the cursor that iterates over distinct countries that are yet to be processed.
         """
-        return cls.objects.filter(to_publish=True).distinct(field="country")
+        return cls.objects.filter(to_publish=True, country__ne="IT").distinct(field="country")
 
     @classmethod
     def to_process(cls, country_: str) -> Cursor:
