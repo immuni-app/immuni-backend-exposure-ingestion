@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from bson import ObjectId
 from mongoengine import BooleanField, Document, EmbeddedDocumentListField, StringField
@@ -42,13 +42,18 @@ class UploadEu(Document):
     meta = {"indexes": [{"fields": ("country", "to_publish")}]}
 
     @classmethod
-    def countries_to_process(cls) -> Cursor:
+    def countries_to_process(cls, excluded: Optional[str]) -> Cursor:
         """
         Fetch all countries yet to be processed.
 
         :return: the cursor that iterates over distinct countries that are yet to be processed.
         """
-        return cls.objects.filter(to_publish=True, country__ne="IT").distinct(field="country")
+        filter_parameters = dict(to_publish=True)
+
+        if excluded is not None:
+            filter_parameters["country__ne"] = excluded
+
+        return cls.objects.filter(**filter_parameters).distinct(field="country")
 
     @classmethod
     def to_process(cls, country_: str) -> Cursor:

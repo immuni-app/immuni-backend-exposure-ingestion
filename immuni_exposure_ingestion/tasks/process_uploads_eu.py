@@ -61,7 +61,7 @@ async def _process_uploads_eu() -> None:
     # Acquire a lock on redis before processing anything, avoiding concurrent tasks.
     async with lock_concurrency("process_uploads_eu"):
         _LOGGER.info("Obtained lock.")
-        for country in UploadEu.countries_to_process():
+        for country in UploadEu.countries_to_process(excluded="IT"):
             _create_batch(country_=country)
         _LOGGER.info("Releasing lock.")
 
