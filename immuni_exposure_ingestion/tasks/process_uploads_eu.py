@@ -62,7 +62,8 @@ async def _process_uploads_eu() -> None:
     async with lock_concurrency("process_uploads_eu"):
         _LOGGER.info("Obtained lock.")
         for country in UploadEu.countries_to_process():
-            _create_batch(country_=country)
+            if country!="IT":
+                _create_batch(country_=country)
         _LOGGER.info("Releasing lock.")
 
     _LOGGER.info("EU uploads processing completed successfully.")
