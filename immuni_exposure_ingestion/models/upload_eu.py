@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from bson import ObjectId
 from mongoengine import BooleanField, Document, EmbeddedDocumentListField, StringField
@@ -48,7 +48,7 @@ class UploadEu(Document):
 
         :return: the cursor that iterates over distinct countries that are yet to be processed.
         """
-        filter_parameters = dict(to_publish=True)
+        filter_parameters: Dict[str, Any] = dict(to_publish=True)
 
         if excluded is not None:
             filter_parameters["country__ne"] = excluded
