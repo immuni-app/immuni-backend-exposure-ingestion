@@ -14,7 +14,7 @@ case "$1" in
             --logger-class=immuni_common.helpers.logging.CustomGunicornLogger \
             --max-requests=${API_WORKER_MAX_REQUESTS} \
             --workers=${API_WORKERS} \
-            --worker-class=uvicorn.workers.UvicornWorker ;;
+            --worker-class=immuni_common.uvicorn.ImmuniUvicornWorker ;;
     beat) poetry run celery beat \
             --app=immuni_exposure_ingestion.celery.celery_app \
             --loglevel=debug ;;
