@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
 from mongoengine import BooleanField, Document, EmbeddedDocumentListField, StringField
