@@ -15,6 +15,14 @@ CHECK_OTP_REQUESTS = Counter(
     documentation="Number of check-otp requests the server responded to.",
 )
 
+CHECK_CUN_REQUESTS = Counter(
+    namespace=NAMESPACE,
+    subsystem=Subsystem.API.value,
+    name="check_cun_requests",
+    labelnames=("dummy", "http_status"),
+    documentation="Number of check-cun requests the server responded to.",
+)
+
 UPLOAD_REQUESTS = Counter(
     namespace=NAMESPACE,
     subsystem=Subsystem.API.value,
