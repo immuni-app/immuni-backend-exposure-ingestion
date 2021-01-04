@@ -12,24 +12,28 @@
 #    along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+from datetime import date
 from http import HTTPStatus
 from typing import List
 
 from marshmallow import ValidationError, fields
 from marshmallow.validate import Regexp
+
+from helpers.cun import store
 from sanic import Blueprint
 from sanic.request import Request
 from sanic.response import HTTPResponse
 from sanic_openapi import doc
 
-from immuni_common.core.exceptions import SchemaValidationException, UnauthorizedOtpException
+from immuni_common.core.exceptions import SchemaValidationException, UnauthorizedOtpException, \
+    OtpCollisionException
 from immuni_common.helpers.cache import cache
 from immuni_common.helpers.sanic import handle_dummy_requests, validate
 from immuni_common.helpers.swagger import doc_exception
 from immuni_common.helpers.utils import WeightedPayload
-from immuni_common.models.dataclasses import ExposureDetectionSummary
+from immuni_common.models.dataclasses import ExposureDetectionSummary, OtpData
 from immuni_common.models.enums import Location
-from immuni_common.models.marshmallow.fields import Countries, Province
+from immuni_common.models.marshmallow.fields import Countries, Province, OtpCode, IsoDate, LastHisNumbers
 from immuni_common.models.marshmallow.schemas import (
     ExposureDetectionSummarySchema,
     TemporaryExposureKeySchema,
@@ -45,12 +49,13 @@ from immuni_exposure_ingestion.models.swagger import (
     HeaderImmuniAuthorizationOtpSha,
     HeaderImmuniClientClock,
     HeaderImmuniDummyData,
-)
+    CheckCun)
 from immuni_exposure_ingestion.models.swagger import Upload as UploadDoc
 from immuni_exposure_ingestion.models.upload import Upload
 from immuni_exposure_ingestion.models.validators import TekListValidator
 from immuni_exposure_ingestion.monitoring.api import SUMMARIES_PROCESSED
-from immuni_exposure_ingestion.monitoring.helpers import monitor_check_otp, monitor_upload
+from immuni_exposure_ingestion.monitoring.helpers import monitor_check_otp, monitor_upload, monitor_check_cun
+from immuni_exposure_ingestion.helpers.cun_external_service import verify_cun
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -159,6 +164,8 @@ async def upload(  # pylint: disable=too-many-arguments
         exposure_detection_summaries,
         province=province,
         symptoms_started_on=otp.symptoms_started_on,
+        token_sha=request.token,
+        id_transaction=otp.id_transaction,
     )
 
     return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
@@ -214,4 +221,68 @@ async def check_otp(request: Request, padding: str) -> HTTPResponse:
     """
 
     await validate_otp_token(request.token)
+    return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
+
+
+@bp.route("/check-cun", version=1, methods=["POST"])
+@doc.summary("Check CUN (caller: Mobile Client).")
+@doc.description(
+    "The Mobile Client validates the CUN and the last 8 char of the HIS card" 
+    "prior to uploading data."
+    "Using the dedicated request header, the Mobile Client can indicate to the server that the "
+    "call it is making is a dummy one. "
+    "The server will ignore the content of such calls."
+)
+@doc.consumes(
+    CheckCun, location="body", required=True, content_type="application/json; charset=utf-8"
+)
+@doc.consumes(HeaderImmuniDummyData(), location="header", required=True)
+@doc.consumes(HeaderImmuniContentTypeJson(), location="header", required=True)
+@doc.consumes(HeaderImmuniAuthorizationOtpSha(), location="header", required=True)
+@doc_exception(SchemaValidationException)
+@doc_exception(UnauthorizedOtpException)
+@doc_exception(OtpCollisionException)
+@doc.response(
+    HTTPStatus.NO_CONTENT.value, None, description="Operation completed successfully.",
+)
+@validate(
+    location=Location.JSON,
+    last_his_numbers=LastHisNumbers,
+    symptoms_started_on=IsoDate,
+    padding=fields.String(validate=Regexp(rf"^[a-f0-9]{{0,{config.MAX_PADDING_SIZE}}}$")),
+)
+@validate_token_format
+@slow_down_request
+@cache(no_store=True)
+@monitor_check_cun
+# Dummy requests are currently being filtered at the reverse proxy level, emulating the same
+# behavior implemented below and introducing a response delay.
+# This may be re-evaluated in the future.
+@handle_dummy_requests(
+    [
+        WeightedPayload(config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT, UnauthorizedOtpException(), ),
+        WeightedPayload(
+            100 - config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT,
+            HTTPResponse(status=HTTPStatus.NO_CONTENT.value),
+        ),
+    ]
+)
+async def check_cun(request: Request,
+                    last_his_numbers: str,
+                    symptoms_started_on: date,
+                    padding: str) -> HTTPResponse:
+    """
+    Check the CUN and the last 8 chars of HIS card validity through HIS Service and then enable CUN.
+    :param last_his_numbers: the last 8 numbers of the HIS card.
+    :param symptoms_started_on: the date of the first symptoms.
+    :param request: the HTTP request object.
+    :param padding: the dummy data sent to protect against analysis of the traffic size.
+    :return: 204 if the parameters are valid, 400 on SchemaValidationException,
+    409 on CUN already authorized.
+    """
+
+    await store(cun_sha=request.token, cun_data=OtpData(
+        id_transaction=verify_cun(cun_sha=request.token, last_his_numbers=last_his_numbers),
+        symptoms_started_on=symptoms_started_on))
+
     return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
