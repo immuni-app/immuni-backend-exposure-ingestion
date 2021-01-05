@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 
 import requests
-from immuni_common.core.exceptions import UnauthorizedCunException
+from immuni_common.core.exceptions import UnauthorizedOtpException
 
 from immuni_exposure_ingestion.core import config
 
@@ -47,12 +47,12 @@ def verify_cun(cun_sha: str, last_his_char: str) -> str:
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
-        raise UnauthorizedCunException
+        raise UnauthorizedOtpException
 
     json_response = response.json()
 
     if not json_response or json_response.id_transazione == "":
-        raise UnauthorizedCunException
+        raise UnauthorizedOtpException
 
     _LOGGER.info("Response received from external service.", extra=json_response)
     return json_response.id_transazione

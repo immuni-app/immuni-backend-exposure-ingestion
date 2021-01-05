@@ -19,7 +19,6 @@ from typing import List
 from marshmallow import ValidationError, fields
 from marshmallow.validate import Regexp
 
-from helpers.cun import store
 from sanic import Blueprint
 from sanic.request import Request
 from sanic.response import HTTPResponse
@@ -42,6 +41,7 @@ from immuni_common.models.mongoengine.temporary_exposure_key import TemporaryExp
 from immuni_common.models.swagger import HeaderImmuniContentTypeJson
 from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.helpers.api import validate_otp_token
+from immuni_exposure_ingestion.helpers.cun import store
 from immuni_exposure_ingestion.helpers.exposure_data import store_exposure_detection_summaries
 from immuni_exposure_ingestion.helpers.upload import slow_down_request, validate_token_format
 from immuni_exposure_ingestion.models.swagger import (
