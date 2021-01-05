@@ -55,7 +55,7 @@ from immuni_exposure_ingestion.models.upload import Upload
 from immuni_exposure_ingestion.models.validators import TekListValidator
 from immuni_exposure_ingestion.monitoring.api import SUMMARIES_PROCESSED
 from immuni_exposure_ingestion.monitoring.helpers import monitor_check_otp, monitor_upload, monitor_check_cun
-from immuni_exposure_ingestion.helpers.cun_external_service import verify_cun
+from immuni_exposure_ingestion.helpers.his_external_service import verify_cun
 
 _LOGGER = logging.getLogger(__name__)
 
