@@ -14,45 +14,40 @@
 from __future__ import annotations
 
 import logging
+from datetime import date
 
 import requests
-from immuni_common.core.exceptions import UnauthorizedOtpException, ApiException
 
 from immuni_exposure_ingestion.core import config
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def verify_cun(cun_sha: str, last_his_number: str) -> str:
+def enable_otp(otp_sha: str, symptoms_started_on: date, id_transaction: str) -> bool:
     """
     // TODO review input and output parameter with the HIS department.
     Return the response after validating the CUN and the last 8 char of HIS card from external HIS Service.
     The request should use mutual TLS authentication.
 
-    :param cun_sha: the unique national code in sha256 format released by the HIS.
-    :param last_his_number: the last 8 chars of the HIS card.
-    :return: the id_transaction in sha256 format.
+    :param otp_sha: the unique national code in sha256 format released by the HIS.
+    :param symptoms_started_on: the date of the first symptoms.
+    :param id_transaction: the id of the transaction returned from HIS service.
+    :return: the id_transazione in string format.
     """
-    remote_url = f"https://{config.HIS_EXTERNAL_URL}"
-    body = dict(cun=cun_sha, last_his_number=last_his_number)
+    remote_url = f"https://{config.OTP_INTERNAL_URL}"
+    body = dict(otp=otp_sha,
+                symptoms_started_on=symptoms_started_on,
+                id_transaction=id_transaction)
 
-    _LOGGER.info("Requesting validation with external HIS service.", extra=body)
+    _LOGGER.info("Requesting enable of OTP with internal OTP service.", extra=body)
 
     response = requests.post(
         remote_url,
         json=body,
-        verify=config.HIS_SERVICE_CA_BUNDLE,
-        cert=config.HIS_SERVICE_CERTIFICATE,
+        verify=config.OTP_SERVICE_CA_BUNDLE,
+        cert=config.OTP_SERVICE_CERTIFICATE,
     )
-    try:
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        raise ApiException
 
-    json_response = response.json()
-
-    if not json_response or json_response.id_transazione == "":
-        raise UnauthorizedOtpException
-
-    _LOGGER.info("Response received from external service.", extra=json_response)
-    return json_response.id_transazione
+    response.raise_for_status()
+    _LOGGER.info("Response received from internal OTP service.")
+    return True

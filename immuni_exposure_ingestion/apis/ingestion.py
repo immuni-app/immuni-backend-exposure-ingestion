@@ -25,14 +25,14 @@ from sanic.response import HTTPResponse
 from sanic_openapi import doc
 
 from immuni_common.core.exceptions import SchemaValidationException, UnauthorizedOtpException, \
-    OtpCollisionException
+    OtpCollisionException, ApiException
 from immuni_common.helpers.cache import cache
 from immuni_common.helpers.sanic import handle_dummy_requests, validate
 from immuni_common.helpers.swagger import doc_exception
 from immuni_common.helpers.utils import WeightedPayload
-from immuni_common.models.dataclasses import ExposureDetectionSummary, OtpData
+from immuni_common.models.dataclasses import ExposureDetectionSummary
 from immuni_common.models.enums import Location
-from immuni_common.models.marshmallow.fields import Countries, Province, OtpCode, IsoDate, LastHisNumbers
+from immuni_common.models.marshmallow.fields import Countries, Province, IsoDate, LastHisNumber
 from immuni_common.models.marshmallow.schemas import (
     ExposureDetectionSummarySchema,
     TemporaryExposureKeySchema,
@@ -41,8 +41,8 @@ from immuni_common.models.mongoengine.temporary_exposure_key import TemporaryExp
 from immuni_common.models.swagger import HeaderImmuniContentTypeJson
 from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.helpers.api import validate_otp_token
-from immuni_exposure_ingestion.helpers.cun import store
 from immuni_exposure_ingestion.helpers.exposure_data import store_exposure_detection_summaries
+from immuni_exposure_ingestion.helpers.otp_internal_service import enable_otp
 from immuni_exposure_ingestion.helpers.upload import slow_down_request, validate_token_format
 from immuni_exposure_ingestion.models.swagger import (
     CheckOtp,
@@ -114,13 +114,13 @@ bp = Blueprint("ingestion", url_prefix="ingestion")
 # This may be re-evaluated in the future.
 @handle_dummy_requests([WeightedPayload(1, HTTPResponse(status=HTTPStatus.NO_CONTENT.value))])
 async def upload(  # pylint: disable=too-many-arguments
-    request: Request,
-    province: str,
-    countries_of_interest: List[str],
-    teks: List[TemporaryExposureKey],
-    exposure_detection_summaries: List[ExposureDetectionSummary],
-    client_clock: int,
-    padding: str,
+        request: Request,
+        province: str,
+        countries_of_interest: List[str],
+        teks: List[TemporaryExposureKey],
+        exposure_detection_summaries: List[ExposureDetectionSummary],
+        client_clock: int,
+        padding: str,
 ) -> HTTPResponse:
     """
     Allow Mobile Clients to upload their Temporary Exposure Keys.
@@ -204,7 +204,7 @@ async def upload(  # pylint: disable=too-many-arguments
 # This may be re-evaluated in the future.
 @handle_dummy_requests(
     [
-        WeightedPayload(config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT, UnauthorizedOtpException(),),
+        WeightedPayload(config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT, UnauthorizedOtpException(), ),
         WeightedPayload(
             100 - config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT,
             HTTPResponse(status=HTTPStatus.NO_CONTENT.value),
@@ -227,7 +227,7 @@ async def check_otp(request: Request, padding: str) -> HTTPResponse:
 @bp.route("/check-cun", version=1, methods=["POST"])
 @doc.summary("Check CUN (caller: Mobile Client).")
 @doc.description(
-    "The Mobile Client validates the CUN and the last 8 char of the HIS card" 
+    "The Mobile Client validates the CUN and the last 8 char of the HIS card"
     "prior to uploading data."
     "Using the dedicated request header, the Mobile Client can indicate to the server that the "
     "call it is making is a dummy one. "
@@ -240,6 +240,7 @@ async def check_otp(request: Request, padding: str) -> HTTPResponse:
 @doc.consumes(HeaderImmuniContentTypeJson(), location="header", required=True)
 @doc.consumes(HeaderImmuniAuthorizationOtpSha(), location="header", required=True)
 @doc_exception(SchemaValidationException)
+@doc_exception(ApiException)
 @doc_exception(UnauthorizedOtpException)
 @doc_exception(OtpCollisionException)
 @doc.response(
@@ -247,8 +248,8 @@ async def check_otp(request: Request, padding: str) -> HTTPResponse:
 )
 @validate(
     location=Location.JSON,
-    last_his_numbers=LastHisNumbers,
-    symptoms_started_on=IsoDate,
+    last_his_number=LastHisNumber(),
+    symptoms_started_on=IsoDate(),
     padding=fields.String(validate=Regexp(rf"^[a-f0-9]{{0,{config.MAX_PADDING_SIZE}}}$")),
 )
 @validate_token_format
@@ -268,21 +269,21 @@ async def check_otp(request: Request, padding: str) -> HTTPResponse:
     ]
 )
 async def check_cun(request: Request,
-                    last_his_numbers: str,
+                    last_his_number: str,
                     symptoms_started_on: date,
                     padding: str) -> HTTPResponse:
     """
     Check the CUN and the last 8 chars of HIS card validity through HIS Service and then enable CUN.
-    :param last_his_numbers: the last 8 numbers of the HIS card.
+    :param last_his_number: the last 8 numbers of the HIS card.
     :param symptoms_started_on: the date of the first symptoms.
     :param request: the HTTP request object.
     :param padding: the dummy data sent to protect against analysis of the traffic size.
     :return: 204 if the parameters are valid, 400 on SchemaValidationException,
     409 on CUN already authorized.
     """
-
-    await store(cun_sha=request.token, cun_data=OtpData(
-        id_transaction=verify_cun(cun_sha=request.token, last_his_numbers=last_his_numbers),
-        symptoms_started_on=symptoms_started_on))
+    id_transaction = verify_cun(cun_sha=request.token, last_his_number=last_his_number)
+    enable_otp(otp_sha=request.token,
+               symptoms_started_on=symptoms_started_on,
+               id_transaction=id_transaction)
 
     return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
