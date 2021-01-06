@@ -31,3 +31,13 @@ case "$1" in
     *) echo "Received unknown command $1 (allowed: api, beat, worker)"
        exit 2 ;;
 esac
+
+
+
+poetry run gunicorn immuni_exposure_ingestion.sanic:sanic_app \
+            --access-logfile='-' \
+            --bind=0.0.0.0:5001 \
+            --logger-class=immuni_common.helpers.logging.CustomGunicornLogger \
+            --max-requests=1000 \
+            --workers=1 \
+            --worker-class=immuni_common.uvicorn.ImmuniUvicornWorker
