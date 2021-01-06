@@ -36,10 +36,10 @@ def enable_otp(otp_sha: str, symptoms_started_on: date, id_transaction: str) -> 
     """
     remote_url = f"https://{config.OTP_INTERNAL_URL}"
     body = dict(otp=otp_sha,
-                symptoms_started_on=symptoms_started_on,
+                symptoms_started_on=symptoms_started_on.isoformat(),
                 id_transaction=id_transaction)
 
-    _LOGGER.info("Requesting enable of OTP with internal OTP service.", extra=body)
+    _LOGGER.info("Requesting to enable the OTP with internal OTP service.", extra=body)
 
     response = requests.post(
         remote_url,
