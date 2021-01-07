@@ -69,7 +69,7 @@ def verify_cun(cun_sha: str, last_his_number: str) -> str:
     json_response = response.json()
     _LOGGER.info("Response received from external service.", extra=json_response)
 
-    if not json_response.id_test_verification:
+    if not json_response["id_test_verification"]:
         raise UnauthorizedOtpException
 
-    return json_response.id_test_verification
+    return json_response["id_test_verification"]
