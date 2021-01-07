@@ -8,7 +8,11 @@ from immuni_common.helpers.sanic import validate
 from immuni_common.models.enums import Location
 from immuni_common.models.marshmallow.fields import IntegerBoolField
 from immuni_common.models.swagger import HeaderImmuniDummyData
-from immuni_exposure_ingestion.monitoring.api import CHECK_OTP_REQUESTS, UPLOAD_REQUESTS, CHECK_CUN_REQUESTS
+from immuni_exposure_ingestion.monitoring.api import (
+    CHECK_CUN_REQUESTS,
+    CHECK_OTP_REQUESTS,
+    UPLOAD_REQUESTS,
+)
 
 
 def monitor_upload(f: Callable[..., Coroutine[Any, Any, HTTPResponse]]) -> Callable:

@@ -16,8 +16,9 @@ from __future__ import annotations
 import logging
 
 import requests
-from immuni_common.core.exceptions import UnauthorizedOtpException, ApiException
 
+from immuni_common.core.exceptions import ApiException, UnauthorizedOtpException, SchemaValidationException, \
+    OtpCollisionException
 from immuni_exposure_ingestion.core import config
 
 _LOGGER = logging.getLogger(__name__)
@@ -31,9 +32,9 @@ def verify_cun(cun_sha: str, last_his_number: str) -> str:
 
     :param cun_sha: the unique national code in sha256 format released by the HIS.
     :param last_his_number: the last 8 chars of the HIS card.
-    :return: the id_transaction.
+    :return: the id_test_verification.
     """
-    #remote_url = f"https://{config.HIS_VERIFY_EXTERNAL_URL}"
+    # remote_url = f"https://{config.HIS_VERIFY_EXTERNAL_URL}"
     remote_url = f"http://{config.HIS_VERIFY_EXTERNAL_URL}"
     body = dict(cun=cun_sha, last_his_number=last_his_number)
 
@@ -42,18 +43,33 @@ def verify_cun(cun_sha: str, last_his_number: str) -> str:
     response = requests.post(
         remote_url,
         json=body
-        #verify=config.HIS_SERVICE_CA_BUNDLE,
-        #cert=config.HIS_SERVICE_CERTIFICATE,
+        # verify=config.HIS_SERVICE_CA_BUNDLE,
+        # cert=config.HIS_SERVICE_CERTIFICATE,
     )
+
+    if response.status_code == 400:
+        _LOGGER.error("Response %d received from external service.",
+                      response.status_code, extra=response.json())
+        raise SchemaValidationException
+    elif response.status_code == 401:
+        _LOGGER.error("Response %d received from external service.",
+                      response.status_code, extra=response.json())
+        raise UnauthorizedOtpException
+    elif response.status_code == 409:
+        _LOGGER.error("Response %d received from external service.",
+                      response.status_code, extra=response.json())
+        raise OtpCollisionException
+
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
+        _LOGGER.error(e)
         raise ApiException
 
     json_response = response.json()
+    _LOGGER.info("Response received from external service.", extra=json_response)
 
-    if not json_response or json_response.id_transazione == "":
+    if not json_response.id_test_verification:
         raise UnauthorizedOtpException
 
-    _LOGGER.info("Response received from external service.", extra=json_response)
-    return json_response.id_transazione
+    return json_response.id_test_verification

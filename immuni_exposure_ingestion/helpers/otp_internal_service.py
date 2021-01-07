@@ -17,37 +17,54 @@ import logging
 from datetime import date
 
 import requests
+from immuni_common.core.exceptions import SchemaValidationException, OtpCollisionException, ApiException
 
 from immuni_exposure_ingestion.core import config
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def enable_otp(otp_sha: str, symptoms_started_on: date, id_transaction: str) -> bool:
+def enable_otp(otp_sha: str, symptoms_started_on: date, id_test_verification: str) -> bool:
     """
-    // TODO review input and output parameter with the HIS department.
-    Return the response after validating the CUN and the last 8 char of HIS card from external HIS Service.
+    Return the response after validating the CUN and the last 8 char of HIS card
+    from external HIS Service.
     The request should use mutual TLS authentication.
 
     :param otp_sha: the unique national code in sha256 format released by the HIS.
     :param symptoms_started_on: the date of the first symptoms.
-    :param id_transaction: the id of the transaction returned from HIS service.
-    :return: the id_transazione in string format.
+    :param id_test_verification: the id of the test returned from HIS service.
+    :return: boolean.
     """
     remote_url = f"https://{config.OTP_INTERNAL_URL}"
-    body = dict(otp=otp_sha,
-                symptoms_started_on=symptoms_started_on.isoformat(),
-                id_transaction=id_transaction)
+    body = dict(
+        otp=otp_sha,
+        symptoms_started_on=symptoms_started_on.isoformat(),
+        id_test_verification=id_test_verification,
+    )
 
     _LOGGER.info("Requesting to enable the OTP with internal OTP service.", extra=body)
 
     response = requests.post(
         remote_url,
         json=body
-        #verify=config.OTP_SERVICE_CA_BUNDLE,
-        #cert=config.OTP_SERVICE_CERTIFICATE,
+        # verify=config.OTP_SERVICE_CA_BUNDLE,
+        # cert=config.OTP_SERVICE_CERTIFICATE,
     )
 
-    response.raise_for_status()
+    if response.status_code == 400:
+        _LOGGER.error("Response %d received from external service.",
+                      response.status_code, extra=response.json())
+        raise SchemaValidationException
+    elif response.status_code == 409:
+        _LOGGER.error("Response %d received from external service.",
+                      response.status_code, extra=response.json())
+        raise OtpCollisionException
+
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        _LOGGER.error(e)
+        raise ApiException
+
     _LOGGER.info("Response received from internal OTP service.")
     return True

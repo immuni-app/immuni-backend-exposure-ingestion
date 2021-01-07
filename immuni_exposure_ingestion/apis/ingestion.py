@@ -18,21 +18,24 @@ from typing import List
 
 from marshmallow import ValidationError, fields
 from marshmallow.validate import Regexp
-
 from sanic import Blueprint
 from sanic.request import Request
 from sanic.response import HTTPResponse
 from sanic_openapi import doc
 
-from immuni_common.core.exceptions import SchemaValidationException, UnauthorizedOtpException, \
-    OtpCollisionException, ApiException
+from immuni_common.core.exceptions import (
+    ApiException,
+    OtpCollisionException,
+    SchemaValidationException,
+    UnauthorizedOtpException,
+)
 from immuni_common.helpers.cache import cache
 from immuni_common.helpers.sanic import handle_dummy_requests, validate
 from immuni_common.helpers.swagger import doc_exception
 from immuni_common.helpers.utils import WeightedPayload
 from immuni_common.models.dataclasses import ExposureDetectionSummary
 from immuni_common.models.enums import Location
-from immuni_common.models.marshmallow.fields import Countries, Province, IsoDate, LastHisNumber
+from immuni_common.models.marshmallow.fields import Countries, IsoDate, LastHisNumber, Province
 from immuni_common.models.marshmallow.schemas import (
     ExposureDetectionSummarySchema,
     TemporaryExposureKeySchema,
@@ -42,20 +45,25 @@ from immuni_common.models.swagger import HeaderImmuniContentTypeJson
 from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.helpers.api import validate_otp_token
 from immuni_exposure_ingestion.helpers.exposure_data import store_exposure_detection_summaries
+from immuni_exposure_ingestion.helpers.his_external_service import verify_cun
 from immuni_exposure_ingestion.helpers.otp_internal_service import enable_otp
 from immuni_exposure_ingestion.helpers.upload import slow_down_request, validate_token_format
 from immuni_exposure_ingestion.models.swagger import (
+    CheckCun,
     CheckOtp,
     HeaderImmuniAuthorizationOtpSha,
     HeaderImmuniClientClock,
     HeaderImmuniDummyData,
-    CheckCun)
+)
 from immuni_exposure_ingestion.models.swagger import Upload as UploadDoc
 from immuni_exposure_ingestion.models.upload import Upload
 from immuni_exposure_ingestion.models.validators import TekListValidator
 from immuni_exposure_ingestion.monitoring.api import SUMMARIES_PROCESSED
-from immuni_exposure_ingestion.monitoring.helpers import monitor_check_otp, monitor_upload, monitor_check_cun
-from immuni_exposure_ingestion.helpers.his_external_service import verify_cun
+from immuni_exposure_ingestion.monitoring.helpers import (
+    monitor_check_cun,
+    monitor_check_otp,
+    monitor_upload,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -114,13 +122,13 @@ bp = Blueprint("ingestion", url_prefix="ingestion")
 # This may be re-evaluated in the future.
 @handle_dummy_requests([WeightedPayload(1, HTTPResponse(status=HTTPStatus.NO_CONTENT.value))])
 async def upload(  # pylint: disable=too-many-arguments
-        request: Request,
-        province: str,
-        countries_of_interest: List[str],
-        teks: List[TemporaryExposureKey],
-        exposure_detection_summaries: List[ExposureDetectionSummary],
-        client_clock: int,
-        padding: str,
+    request: Request,
+    province: str,
+    countries_of_interest: List[str],
+    teks: List[TemporaryExposureKey],
+    exposure_detection_summaries: List[ExposureDetectionSummary],
+    client_clock: int,
+    padding: str,
 ) -> HTTPResponse:
     """
     Allow Mobile Clients to upload their Temporary Exposure Keys.
@@ -165,7 +173,7 @@ async def upload(  # pylint: disable=too-many-arguments
         province=province,
         symptoms_started_on=otp.symptoms_started_on,
         token_sha=request.token,
-        id_transaction=otp.id_transaction,
+        id_test_verification=otp.id_test_verification,
     )
 
     return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
@@ -204,7 +212,7 @@ async def upload(  # pylint: disable=too-many-arguments
 # This may be re-evaluated in the future.
 @handle_dummy_requests(
     [
-        WeightedPayload(config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT, UnauthorizedOtpException(), ),
+        WeightedPayload(config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT, UnauthorizedOtpException(),),
         WeightedPayload(
             100 - config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT,
             HTTPResponse(status=HTTPStatus.NO_CONTENT.value),
@@ -261,17 +269,16 @@ async def check_otp(request: Request, padding: str) -> HTTPResponse:
 # This may be re-evaluated in the future.
 @handle_dummy_requests(
     [
-        WeightedPayload(config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT, UnauthorizedOtpException(), ),
+        WeightedPayload(config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT, UnauthorizedOtpException(),),
         WeightedPayload(
             100 - config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT,
             HTTPResponse(status=HTTPStatus.NO_CONTENT.value),
         ),
     ]
 )
-async def check_cun(request: Request,
-                    last_his_number: str,
-                    symptoms_started_on: date,
-                    padding: str) -> HTTPResponse:
+async def check_cun(
+    request: Request, last_his_number: str, symptoms_started_on: date, padding: str
+) -> HTTPResponse:
     """
     Check the CUN and the last 8 chars of HIS card validity through HIS Service and then enable CUN.
     :param last_his_number: the last 8 numbers of the HIS card.
@@ -281,9 +288,11 @@ async def check_cun(request: Request,
     :return: 204 if the parameters are valid, 400 on SchemaValidationException,
     409 on CUN already authorized.
     """
-    id_transaction = verify_cun(cun_sha=request.token, last_his_number=last_his_number)
-    enable_otp(otp_sha=request.token,
-               symptoms_started_on=symptoms_started_on,
-               id_transaction=id_transaction)
+    id_test_verification = verify_cun(cun_sha=request.token, last_his_number=last_his_number)
+    enable_otp(
+        otp_sha=request.token,
+        symptoms_started_on=symptoms_started_on,
+        id_test_verification=id_test_verification,
+    )
 
     return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
