@@ -34,17 +34,17 @@ def verify_cun(cun_sha: str, last_his_number: str) -> str:
     :param last_his_number: the last 8 chars of the HIS card.
     :return: the id_test_verification.
     """
-    # remote_url = f"https://{config.HIS_VERIFY_EXTERNAL_URL}"
-    remote_url = f"http://{config.HIS_VERIFY_EXTERNAL_URL}"
+    remote_url = f"https://{config.HIS_VERIFY_EXTERNAL_URL}"
+
     body = dict(cun=cun_sha, last_his_number=last_his_number)
 
     _LOGGER.info("Requesting validation with external HIS service.", extra=body)
 
     response = requests.post(
         remote_url,
-        json=body
-        # verify=config.HIS_SERVICE_CA_BUNDLE,
-        # cert=config.HIS_SERVICE_CERTIFICATE,
+        json=body,
+        verify=config.HIS_SERVICE_CA_BUNDLE,
+        cert=config.HIS_SERVICE_CERTIFICATE,
     )
 
     if response.status_code == 400:
