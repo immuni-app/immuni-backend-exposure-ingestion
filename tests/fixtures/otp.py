@@ -25,9 +25,11 @@ from immuni_exposure_ingestion.core.managers import managers
 @pytest.fixture()
 async def otp() -> OtpData:
     # Key is 12345
-    otp = OtpData(symptoms_started_on=date.today())
+    otp = OtpData(id_test_verification=None, symptoms_started_on=date.today())
     # Authorize this otp
     await managers.otp_redis.set(
         key_for_otp_sha(sha256("12345".encode("utf-8")).hexdigest()), OtpDataSchema().dumps(otp),
     )
     return otp
+
+
