@@ -47,9 +47,8 @@ def enable_otp(otp_sha: str, symptoms_started_on: date, id_test_verification: st
     response = requests.post(
         remote_url,
         json=body,
-        verify=False
-        #verify=config.OTP_SERVICE_CA_BUNDLE,
-        #cert=config.OTP_SERVICE_CERTIFICATE,
+        verify=config.OTP_SERVICE_CA_BUNDLE,
+        cert=config.OTP_SERVICE_CERTIFICATE,
     )
 
     if response.status_code == 400:
