@@ -17,8 +17,12 @@ import logging
 from datetime import date
 
 import requests
-from immuni_common.core.exceptions import SchemaValidationException, OtpCollisionException, ApiException
 
+from immuni_common.core.exceptions import (
+    ApiException,
+    OtpCollisionException,
+    SchemaValidationException,
+)
 from immuni_exposure_ingestion.core import config
 
 _LOGGER = logging.getLogger(__name__)
@@ -51,19 +55,25 @@ def enable_otp(otp_sha: str, symptoms_started_on: date, id_test_verification: st
     )
 
     if response.status_code == 400:
-        _LOGGER.error("Response %d received from external service.",
-                      response.status_code, extra=response.json())
+        _LOGGER.error(
+            "Response %d received from external service.",
+            response.status_code,
+            extra=response.json(),
+        )
         raise SchemaValidationException
     elif response.status_code == 409:
-        _LOGGER.error("Response %d received from external service.",
-                      response.status_code, extra=response.json())
+        _LOGGER.error(
+            "Response %d received from external service.",
+            response.status_code,
+            extra=response.json(),
+        )
         raise OtpCollisionException
 
     try:
         response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        _LOGGER.error(e)
-        raise ApiException
+    except requests.exceptions.HTTPError as msg_error:
+        _LOGGER.error(msg_error)
+        raise ApiException from msg_error
 
     _LOGGER.info("Response received from internal OTP service.")
     return True

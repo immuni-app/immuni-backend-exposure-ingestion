@@ -24,10 +24,9 @@ from immuni_exposure_ingestion.core import config
 
 
 @contextmanager
-def mock_internal_otp_service_success(
-        expected_content: bool
-) -> Iterator[None]:
+def mock_internal_otp_service_success(expected_content: bool) -> Iterator[None]:
     with responses.RequestsMock() as mock_requests:
+
         def request_callback(request: PreparedRequest) -> Tuple[int, dict, str]:
             assert request.body is not None
             payload = json.loads(request.body)
@@ -35,7 +34,7 @@ def mock_internal_otp_service_success(
                 # assert is valid payload
                 assert payload == {
                     "otp": sha256("59FU36KR46".encode("utf-8")).hexdigest(),
-                    'symptoms_started_on': date.today().isoformat(),
+                    "symptoms_started_on": date.today().isoformat(),
                     "id_test_verification": "2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
                 }
             # return 204 as status code.
@@ -56,17 +55,16 @@ def mock_internal_otp_service_success(
 
 
 @contextmanager
-def mock_internal_otp_service_schema_validation(
-        expected_content: bool
-) -> Iterator[None]:
+def mock_internal_otp_service_schema_validation(expected_content: bool) -> Iterator[None]:
     with responses.RequestsMock() as mock_requests:
+
         def request_callback(request: PreparedRequest) -> Tuple[int, dict, str]:
             assert request.body is not None
             payload = json.loads(request.body)
             if expected_content:
                 assert payload == {
                     "otp": sha256("59FU".encode("utf-8")).hexdigest(),
-                    'symptoms_started_on': date.today().isoformat(),
+                    "symptoms_started_on": date.today().isoformat(),
                     "id_test_verification": "2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
                 }
             # return 400 as status code.
@@ -87,17 +85,16 @@ def mock_internal_otp_service_schema_validation(
 
 
 @contextmanager
-def mock_internal_otp_service_otp_collision(
-        expected_content: bool
-) -> Iterator[None]:
+def mock_internal_otp_service_otp_collision(expected_content: bool) -> Iterator[None]:
     with responses.RequestsMock() as mock_requests:
+
         def request_callback(request: PreparedRequest) -> Tuple[int, dict, str]:
             assert request.body is not None
             payload = json.loads(request.body)
             if expected_content:
                 assert payload == {
                     "otp": sha256("59FU36KR46".encode("utf-8")).hexdigest(),
-                    'symptoms_started_on': date.today().isoformat(),
+                    "symptoms_started_on": date.today().isoformat(),
                     "id_test_verification": "2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
                 }
             # return 409 as status code.
@@ -118,17 +115,16 @@ def mock_internal_otp_service_otp_collision(
 
 
 @contextmanager
-def mock_internal_otp_service_api_exception(
-        expected_content: bool
-) -> Iterator[None]:
+def mock_internal_otp_service_api_exception(expected_content: bool) -> Iterator[None]:
     with responses.RequestsMock() as mock_requests:
+
         def request_callback(request: PreparedRequest) -> Tuple[int, dict, str]:
             assert request.body is not None
             payload = json.loads(request.body)
             if expected_content:
                 assert payload == {
                     "otp": sha256("59FU36KR46".encode("utf-8")).hexdigest(),
-                    'symptoms_started_on': date.today().isoformat(),
+                    "symptoms_started_on": date.today().isoformat(),
                     "id_test_verification": "2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
                 }
             # return 500 as status code.

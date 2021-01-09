@@ -31,5 +31,3 @@ async def otp() -> OtpData:
         key_for_otp_sha(sha256("12345".encode("utf-8")).hexdigest()), OtpDataSchema().dumps(otp),
     )
     return otp
-
-

@@ -11,84 +11,101 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import pytest
 from hashlib import sha256
 
-from immuni_common.core.exceptions import SchemaValidationException, UnauthorizedOtpException, OtpCollisionException, \
-    ApiException
+import pytest
 
+from immuni_common.core.exceptions import (
+    ApiException,
+    OtpCollisionException,
+    SchemaValidationException,
+    UnauthorizedOtpException,
+)
 from immuni_exposure_ingestion.helpers.his_external_service import verify_cun
 from tests.fixtures.core import config_set
-from tests.fixtures.his_external_service import mock_external_his_service_success, \
-    mock_external_his_service_schema_validation, mock_external_his_service_unauthorized_otp, \
-    mock_external_his_service_otp_collision, mock_external_his_service_api_exception, \
-    mock_external_his_service_missing_id_test_verification
+from tests.fixtures.his_external_service import (
+    mock_external_his_service_api_exception,
+    mock_external_his_service_missing_id_test_verification,
+    mock_external_his_service_otp_collision,
+    mock_external_his_service_schema_validation,
+    mock_external_his_service_success,
+    mock_external_his_service_unauthorized_otp,
+)
 
 
 def test_his_external_service() -> None:
     with config_set("HIS_VERIFY_EXTERNAL_URL", "example.com"), mock_external_his_service_success(
-            expected_content="2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
+        expected_content="2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
     ):
-        id_verification_test = verify_cun(cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
-                                          last_his_number="12345678")
+        id_verification_test = verify_cun(
+            cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(), last_his_number="12345678"
+        )
         assert id_verification_test == "2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
 
 
 def test_his_external_service_schema_validation() -> None:
-    with config_set("HIS_VERIFY_EXTERNAL_URL", "example.com"), \
-         mock_external_his_service_schema_validation(
-             expected_content="2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
-         ):
+    with config_set(
+        "HIS_VERIFY_EXTERNAL_URL", "example.com"
+    ), mock_external_his_service_schema_validation(
+        expected_content="2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
+    ):
         try:
-            verify_cun(cun_sha="b39e0733843b1b5d7",
-                       last_his_number="12345678")
+            verify_cun(cun_sha="b39e0733843b1b5d7", last_his_number="12345678")
         except SchemaValidationException as e:
             assert e
 
 
 def test_his_external_service_unauthorized_otp() -> None:
-    with config_set("HIS_VERIFY_EXTERNAL_URL", "example.com"), \
-         mock_external_his_service_unauthorized_otp(
-             expected_content="2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
-         ):
+    with config_set(
+        "HIS_VERIFY_EXTERNAL_URL", "example.com"
+    ), mock_external_his_service_unauthorized_otp(
+        expected_content="2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
+    ):
         try:
-            verify_cun(cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
-                       last_his_number="12345678")
+            verify_cun(
+                cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(), last_his_number="12345678"
+            )
         except UnauthorizedOtpException as e:
             assert e
 
 
 def test_his_external_service_otp_collision() -> None:
-    with config_set("HIS_VERIFY_EXTERNAL_URL", "example.com"), \
-         mock_external_his_service_otp_collision(
-             expected_content="2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
-         ):
+    with config_set(
+        "HIS_VERIFY_EXTERNAL_URL", "example.com"
+    ), mock_external_his_service_otp_collision(
+        expected_content="2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
+    ):
         try:
-            verify_cun(cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
-                       last_his_number="12345678")
+            verify_cun(
+                cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(), last_his_number="12345678"
+            )
         except OtpCollisionException as e:
             assert e
 
 
 def test_his_external_service_api_exception() -> None:
-    with config_set("HIS_VERIFY_EXTERNAL_URL", "example.com"), \
-         mock_external_his_service_api_exception(
-             expected_content="2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
-         ):
+    with config_set(
+        "HIS_VERIFY_EXTERNAL_URL", "example.com"
+    ), mock_external_his_service_api_exception(
+        expected_content="2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
+    ):
         try:
-            verify_cun(cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
-                       last_his_number="12345678")
+            verify_cun(
+                cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(), last_his_number="12345678"
+            )
         except ApiException as e:
             assert e
 
 
 def test_his_external_service_missing_id_test_verification() -> None:
-    with config_set("HIS_VERIFY_EXTERNAL_URL", "example.com"), \
-         mock_external_his_service_missing_id_test_verification(
-             expected_content="2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
-         ):
+    with config_set(
+        "HIS_VERIFY_EXTERNAL_URL", "example.com"
+    ), mock_external_his_service_missing_id_test_verification(
+        expected_content="2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
+    ):
         try:
-            verify_cun(cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
-                       last_his_number="12345678")
+            verify_cun(
+                cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(), last_his_number="12345678"
+            )
         except UnauthorizedOtpException as e:
             assert e

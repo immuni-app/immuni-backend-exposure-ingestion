@@ -23,10 +23,9 @@ from immuni_exposure_ingestion.core import config
 
 
 @contextmanager
-def mock_external_his_service_success(
-        expected_content: Optional[str] = None
-) -> Iterator[None]:
+def mock_external_his_service_success(expected_content: Optional[str] = None) -> Iterator[None]:
     with responses.RequestsMock() as mock_requests:
+
         def request_callback(request: PreparedRequest) -> Tuple[int, Dict, str]:
             assert request.body is not None
             payload = json.loads(request.body)
@@ -40,8 +39,12 @@ def mock_external_his_service_success(
             return (
                 200,
                 {},
-                json.dumps(dict(id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
-                                id_test_verification="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")),
+                json.dumps(
+                    dict(
+                        id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+                        id_test_verification="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+                    )
+                ),
             )
 
         mock_requests.add_callback(
@@ -56,9 +59,10 @@ def mock_external_his_service_success(
 
 @contextmanager
 def mock_external_his_service_schema_validation(
-        expected_content: Optional[str] = None
+    expected_content: Optional[str] = None,
 ) -> Iterator[None]:
     with responses.RequestsMock() as mock_requests:
+
         def request_callback(request: PreparedRequest) -> Tuple[int, Dict, str]:
             assert request.body is not None
             payload = json.loads(request.body)
@@ -72,8 +76,9 @@ def mock_external_his_service_schema_validation(
             return (
                 400,
                 {},
-                json.dumps(dict(response_code="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
-                                id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")),
+                json.dumps(
+                    dict(response_code=400, id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+                ),
             )
 
         mock_requests.add_callback(
@@ -88,9 +93,10 @@ def mock_external_his_service_schema_validation(
 
 @contextmanager
 def mock_external_his_service_unauthorized_otp(
-        expected_content: Optional[str] = None
+    expected_content: Optional[str] = None,
 ) -> Iterator[None]:
     with responses.RequestsMock() as mock_requests:
+
         def request_callback(request: PreparedRequest) -> Tuple[int, Dict, str]:
             assert request.body is not None
             payload = json.loads(request.body)
@@ -104,8 +110,9 @@ def mock_external_his_service_unauthorized_otp(
             return (
                 401,
                 {},
-                json.dumps(dict(response_code="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
-                                id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")),
+                json.dumps(
+                    dict(response_code=401, id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+                ),
             )
 
         mock_requests.add_callback(
@@ -120,9 +127,10 @@ def mock_external_his_service_unauthorized_otp(
 
 @contextmanager
 def mock_external_his_service_otp_collision(
-        expected_content: Optional[str] = None
+    expected_content: Optional[str] = None,
 ) -> Iterator[None]:
     with responses.RequestsMock() as mock_requests:
+
         def request_callback(request: PreparedRequest) -> Tuple[int, Dict, str]:
             assert request.body is not None
             payload = json.loads(request.body)
@@ -136,8 +144,9 @@ def mock_external_his_service_otp_collision(
             return (
                 409,
                 {},
-                json.dumps(dict(response_code="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
-                                id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")),
+                json.dumps(
+                    dict(response_code=409, id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+                ),
             )
 
         mock_requests.add_callback(
@@ -152,9 +161,10 @@ def mock_external_his_service_otp_collision(
 
 @contextmanager
 def mock_external_his_service_api_exception(
-        expected_content: Optional[str] = None
+    expected_content: Optional[str] = None,
 ) -> Iterator[None]:
     with responses.RequestsMock() as mock_requests:
+
         def request_callback(request: PreparedRequest) -> Tuple[int, Dict, str]:
             assert request.body is not None
             payload = json.loads(request.body)
@@ -167,8 +177,9 @@ def mock_external_his_service_api_exception(
             return (
                 500,
                 {},
-                json.dumps(dict(response_code="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
-                                id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")),
+                json.dumps(
+                    dict(response_code=500, id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+                ),
             )
 
         mock_requests.add_callback(
@@ -183,9 +194,10 @@ def mock_external_his_service_api_exception(
 
 @contextmanager
 def mock_external_his_service_missing_id_test_verification(
-        expected_content: Optional[str] = None
+    expected_content: Optional[str] = None,
 ) -> Iterator[None]:
     with responses.RequestsMock() as mock_requests:
+
         def request_callback(request: PreparedRequest) -> Tuple[int, Dict, str]:
             assert request.body is not None
             payload = json.loads(request.body)
@@ -198,8 +210,12 @@ def mock_external_his_service_missing_id_test_verification(
             return (
                 200,
                 {},
-                json.dumps(dict(id_test_verification=None,
-                                id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")),
+                json.dumps(
+                    dict(
+                        id_test_verification=None,
+                        id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+                    )
+                ),
             )
 
         mock_requests.add_callback(

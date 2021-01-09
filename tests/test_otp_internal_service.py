@@ -11,64 +11,74 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program. If not, see <https://www.gnu.org/licenses/>.
 from datetime import date
-
-import pytest
 from hashlib import sha256
 
-from immuni_common.core.exceptions import SchemaValidationException, OtpCollisionException, ApiException
+import pytest
 
+from immuni_common.core.exceptions import (
+    ApiException,
+    OtpCollisionException,
+    SchemaValidationException,
+)
 from immuni_exposure_ingestion.helpers.otp_internal_service import enable_otp
 from tests.fixtures.core import config_set
-from tests.fixtures.otp_internal_service import mock_internal_otp_service_success, \
-    mock_internal_otp_service_schema_validation, mock_internal_otp_service_otp_collision, \
-    mock_internal_otp_service_api_exception
+from tests.fixtures.otp_internal_service import (
+    mock_internal_otp_service_api_exception,
+    mock_internal_otp_service_otp_collision,
+    mock_internal_otp_service_schema_validation,
+    mock_internal_otp_service_success,
+)
 
 
 def test_otp_internal_service() -> None:
     with config_set("OTP_INTERNAL_URL", "example.com"), mock_internal_otp_service_success(
-            expected_content=True
+        expected_content=True
     ):
-        signature = enable_otp(otp_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
-                               symptoms_started_on=date.today(),
-                               id_test_verification="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+        signature = enable_otp(
+            otp_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+            symptoms_started_on=date.today(),
+            id_test_verification="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+        )
         assert signature is True
 
 
 def test_otp_internal_service_schema_validation() -> None:
-    with config_set("OTP_INTERNAL_URL", "example.com"), \
-         mock_internal_otp_service_schema_validation(
-            expected_content=True
+    with config_set("OTP_INTERNAL_URL", "example.com"), mock_internal_otp_service_schema_validation(
+        expected_content=True
     ):
         try:
-            enable_otp(otp_sha=sha256("59FU".encode("utf-8")).hexdigest(),
-                       symptoms_started_on=date.today(),
-                       id_test_verification="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+            enable_otp(
+                otp_sha=sha256("59FU".encode("utf-8")).hexdigest(),
+                symptoms_started_on=date.today(),
+                id_test_verification="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+            )
         except SchemaValidationException as e:
             assert e
 
 
 def test_otp_internal_service_otp_collision_exception() -> None:
-    with config_set("OTP_INTERNAL_URL", "example.com"), \
-         mock_internal_otp_service_otp_collision(
-            expected_content=True
+    with config_set("OTP_INTERNAL_URL", "example.com"), mock_internal_otp_service_otp_collision(
+        expected_content=True
     ):
         try:
-            enable_otp(otp_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
-                       symptoms_started_on=date.today(),
-                       id_test_verification="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+            enable_otp(
+                otp_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                symptoms_started_on=date.today(),
+                id_test_verification="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+            )
         except OtpCollisionException as e:
             assert e
 
 
 def test_otp_internal_service_api_exception() -> None:
-    with config_set("OTP_INTERNAL_URL", "example.com"), \
-         mock_internal_otp_service_api_exception(
-            expected_content=True
+    with config_set("OTP_INTERNAL_URL", "example.com"), mock_internal_otp_service_api_exception(
+        expected_content=True
     ):
         try:
-            enable_otp(otp_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
-                       symptoms_started_on=date.today(),
-                       id_test_verification="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+            enable_otp(
+                otp_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                symptoms_started_on=date.today(),
+                id_test_verification="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+            )
         except ApiException as e:
             assert e
-
