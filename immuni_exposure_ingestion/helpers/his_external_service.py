@@ -26,12 +26,12 @@ _LOGGER = logging.getLogger(__name__)
 
 def verify_cun(cun_sha: str, last_his_number: str) -> str:
     """
-    Return the response after validating the CUN and the last 8 char of HIS card
-    from external HIS Service.
+    Return the response after validating the CUN and the last 8 number of HIS card
+    through HIS external Service.
     The request should use mutual TLS authentication.
 
     :param cun_sha: the unique national code in sha256 format released by the HIS.
-    :param last_his_number: the last 8 chars of the HIS card.
+    :param last_his_number: the last 8 numbers of the HIS card.
     :return: the id_test_verification.
     """
     remote_url = f"https://{config.HIS_VERIFY_EXTERNAL_URL}"

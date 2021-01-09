@@ -26,14 +26,13 @@ _LOGGER = logging.getLogger(__name__)
 
 def enable_otp(otp_sha: str, symptoms_started_on: date, id_test_verification: str) -> bool:
     """
-    Return the response after validating the CUN and the last 8 char of HIS card
-    from external HIS Service.
+    Return the response after requesting to enable the OTP through HIS external Service.
     The request should use mutual TLS authentication.
 
-    :param otp_sha: the unique national code in sha256 format released by the HIS.
+    :param otp_sha: the otp in sha256.
     :param symptoms_started_on: the date of the first symptoms.
     :param id_test_verification: the id of the test returned from HIS service.
-    :return: boolean.
+    :return: a boolean.
     """
     remote_url = f"https://{config.OTP_INTERNAL_URL}"
     body = dict(

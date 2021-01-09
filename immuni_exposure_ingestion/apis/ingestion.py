@@ -280,7 +280,9 @@ async def check_cun(
     request: Request, last_his_number: str, symptoms_started_on: date, padding: str
 ) -> HTTPResponse:
     """
-    Check the CUN and the last 8 chars of HIS card validity through HIS Service and then enable CUN.
+    Check the CUN and the last 8 numbers validity of HIS card through
+     HIS external service. Then enable the CUN through the OTP service.
+
     :param last_his_number: the last 8 numbers of the HIS card.
     :param symptoms_started_on: the date of the first symptoms.
     :param request: the HTTP request object.
