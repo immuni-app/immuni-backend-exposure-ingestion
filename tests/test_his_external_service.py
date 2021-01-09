@@ -19,13 +19,14 @@ from immuni_common.core.exceptions import SchemaValidationException, Unauthorize
 
 from immuni_exposure_ingestion.helpers.his_external_service import verify_cun
 from tests.fixtures.core import config_set
-from tests.fixtures.his_external_service import mock_external_his_service_response, \
+from tests.fixtures.his_external_service import mock_external_his_service_success, \
     mock_external_his_service_schema_validation, mock_external_his_service_unauthorized_otp, \
-    mock_external_his_service_otp_collision, mock_external_his_service_api_exception
+    mock_external_his_service_otp_collision, mock_external_his_service_api_exception, \
+    mock_external_his_service_missing_id_test_verification
 
 
 def test_his_external_service() -> None:
-    with config_set("HIS_VERIFY_EXTERNAL_URL", "example.com"), mock_external_his_service_response(
+    with config_set("HIS_VERIFY_EXTERNAL_URL", "example.com"), mock_external_his_service_success(
             expected_content="2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
     ):
         id_verification_test = verify_cun(cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
@@ -78,4 +79,16 @@ def test_his_external_service_api_exception() -> None:
             verify_cun(cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
                        last_his_number="12345678")
         except ApiException as e:
+            assert e
+
+
+def test_his_external_service_missing_id_test_verification() -> None:
+    with config_set("HIS_VERIFY_EXTERNAL_URL", "example.com"), \
+         mock_external_his_service_missing_id_test_verification(
+             expected_content="2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
+         ):
+        try:
+            verify_cun(cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                       last_his_number="12345678")
+        except UnauthorizedOtpException as e:
             assert e

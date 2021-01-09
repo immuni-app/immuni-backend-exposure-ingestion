@@ -19,13 +19,13 @@ from immuni_common.core.exceptions import SchemaValidationException, OtpCollisio
 
 from immuni_exposure_ingestion.helpers.otp_internal_service import enable_otp
 from tests.fixtures.core import config_set
-from tests.fixtures.otp_internal_service import mock_internal_otp_service_response, \
-    mock_internal_otp_service_response_schema_validation, mock_internal_otp_service_response_otp_collision, \
-    mock_internal_otp_service_response_api_exception
+from tests.fixtures.otp_internal_service import mock_internal_otp_service_success, \
+    mock_internal_otp_service_schema_validation, mock_internal_otp_service_otp_collision, \
+    mock_internal_otp_service_api_exception
 
 
 def test_otp_internal_service() -> None:
-    with config_set("OTP_INTERNAL_URL", "example.com"), mock_internal_otp_service_response(
+    with config_set("OTP_INTERNAL_URL", "example.com"), mock_internal_otp_service_success(
             expected_content=True
     ):
         signature = enable_otp(otp_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
@@ -36,7 +36,7 @@ def test_otp_internal_service() -> None:
 
 def test_otp_internal_service_schema_validation() -> None:
     with config_set("OTP_INTERNAL_URL", "example.com"), \
-         mock_internal_otp_service_response_schema_validation(
+         mock_internal_otp_service_schema_validation(
             expected_content=True
     ):
         try:
@@ -49,7 +49,7 @@ def test_otp_internal_service_schema_validation() -> None:
 
 def test_otp_internal_service_otp_collision_exception() -> None:
     with config_set("OTP_INTERNAL_URL", "example.com"), \
-         mock_internal_otp_service_response_otp_collision(
+         mock_internal_otp_service_otp_collision(
             expected_content=True
     ):
         try:
@@ -62,7 +62,7 @@ def test_otp_internal_service_otp_collision_exception() -> None:
 
 def test_otp_internal_service_api_exception() -> None:
     with config_set("OTP_INTERNAL_URL", "example.com"), \
-         mock_internal_otp_service_response_api_exception(
+         mock_internal_otp_service_api_exception(
             expected_content=True
     ):
         try:

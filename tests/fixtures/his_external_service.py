@@ -23,7 +23,7 @@ from immuni_exposure_ingestion.core import config
 
 
 @contextmanager
-def mock_external_his_service_response(
+def mock_external_his_service_success(
         expected_content: Optional[str] = None
 ) -> Iterator[None]:
     with responses.RequestsMock() as mock_requests:
@@ -31,10 +31,12 @@ def mock_external_his_service_response(
             assert request.body is not None
             payload = json.loads(request.body)
             if expected_content:
+                # assert is a valid cun and valid last 8 numbers of HIS card.
                 assert payload == {
                     "cun": sha256("59FU36KR46".encode("utf-8")).hexdigest(),
                     "last_his_number": "12345678",
                 }
+            # return 200 as status code.
             return (
                 200,
                 {},
@@ -61,11 +63,12 @@ def mock_external_his_service_schema_validation(
             assert request.body is not None
             payload = json.loads(request.body)
             if expected_content:
-                # invalid cun
+                # assert is an invalid cun or invalid last 8 numbers of HIS card.
                 assert payload == {
                     "cun": "b39e0733843b1b5d7",
                     "last_his_number": "12345678",
                 }
+            # return 400 as status code.
             return (
                 400,
                 {},
@@ -92,11 +95,12 @@ def mock_external_his_service_unauthorized_otp(
             assert request.body is not None
             payload = json.loads(request.body)
             if expected_content:
-                # unauthorized cun
+                # assert the cun is not authorized.
                 assert payload == {
                     "cun": sha256("59FU36KR46".encode("utf-8")).hexdigest(),
                     "last_his_number": "12345678",
                 }
+            # return 401 as status code.
             return (
                 401,
                 {},
@@ -123,11 +127,12 @@ def mock_external_his_service_otp_collision(
             assert request.body is not None
             payload = json.loads(request.body)
             if expected_content:
-                # unauthorized cun
+                # assert cun has been already authorized.
                 assert payload == {
                     "cun": sha256("59FU36KR46".encode("utf-8")).hexdigest(),
                     "last_his_number": "12345678",
                 }
+            # return 409 as status code.
             return (
                 409,
                 {},
@@ -154,15 +159,46 @@ def mock_external_his_service_api_exception(
             assert request.body is not None
             payload = json.loads(request.body)
             if expected_content:
-                # unauthorized cun
                 assert payload == {
                     "cun": sha256("59FU36KR46".encode("utf-8")).hexdigest(),
                     "last_his_number": "12345678",
                 }
+            # return 500 as status code.
             return (
                 500,
                 {},
                 json.dumps(dict(response_code="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+                                id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")),
+            )
+
+        mock_requests.add_callback(
+            responses.POST,
+            f"https://{config.HIS_VERIFY_EXTERNAL_URL}",
+            callback=request_callback,
+            content_type="application/json",
+        )
+
+        yield
+
+
+@contextmanager
+def mock_external_his_service_missing_id_test_verification(
+        expected_content: Optional[str] = None
+) -> Iterator[None]:
+    with responses.RequestsMock() as mock_requests:
+        def request_callback(request: PreparedRequest) -> Tuple[int, Dict, str]:
+            assert request.body is not None
+            payload = json.loads(request.body)
+            if expected_content:
+                assert payload == {
+                    "cun": sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                    "last_his_number": "12345678",
+                }
+            # return 200 as status code, but missing id_test_verification.
+            return (
+                200,
+                {},
+                json.dumps(dict(id_test_verification=None,
                                 id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")),
             )
 

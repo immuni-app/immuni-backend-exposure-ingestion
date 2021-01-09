@@ -67,12 +67,20 @@ UPLOAD_DATA = dict(
     ],
 )
 
+CHECK_CUN_DATA = dict(last_his_number="12345678",
+                      symptoms_started_on="2020-12-23")
+
 CONTENT_TYPE_HEADER = {"Content-Type": "application/json; charset=UTF-8"}
 
 
 @pytest.fixture
 def upload_data() -> Dict:
     return deepcopy(UPLOAD_DATA)
+
+
+@pytest.fixture
+def check_cun_data() -> Dict:
+    return deepcopy(CHECK_CUN_DATA)
 
 
 @pytest.fixture
@@ -183,7 +191,9 @@ async def test_upload_bad_request_dummy_header(
     assert await managers.analytics_redis.llen(config.ANALYTICS_QUEUE_KEY) == 0
 
 
-@pytest.mark.parametrize("endpoint", ["/v1/ingestion/upload", "/v1/ingestion/check-otp"])
+@pytest.mark.parametrize("endpoint", ["/v1/ingestion/upload",
+                                      "/v1/ingestion/check-otp",
+                                      "/v1/ingestion/check-cun"])
 @pytest.mark.parametrize("token", ["asd", "12345", "abcdefghijklmnopqrstuvwxy"])
 async def test_bad_auth_token_raises_validation_error(
         client: TestClient, upload_data: Dict, auth_headers: Dict[str, str], token: str, endpoint: str
@@ -212,9 +222,9 @@ async def test_upload_without_headers(
     assert await managers.analytics_redis.llen(config.ANALYTICS_QUEUE_KEY) == 0
 
 
-@pytest.mark.parametrize("endpoint", ["/v1/ingestion/check-otp"])
+@pytest.mark.parametrize("endpoint", ["/v1/ingestion/check-otp", "/v1/ingestion/check-cun"])
 @pytest.mark.parametrize("missing_header", ["Immuni-Dummy-Data"])
-async def test_check_otp_without_headers(
+async def test_check_otp_cun_without_headers(
         client: TestClient, endpoint: str, missing_header: str, headers: Dict[str, str]
 ) -> None:
     del headers[missing_header]
@@ -389,12 +399,13 @@ async def test_invalid_paddings_upload(
     assert response.status == 400
 
 
+@pytest.mark.parametrize("endpoint", ["/v1/ingestion/check-otp", "/v1/ingestion/check-cun"])
 @pytest.mark.parametrize("invalid_padding", ["\\asd*&!@#", "a" * (config.MAX_PADDING_SIZE + 1)])
-async def test_invalid_paddings_check_otp(
-        client: TestClient, invalid_padding: str, auth_headers: Dict[str, str],
+async def test_invalid_paddings_check_otp_cun(
+        client: TestClient, endpoint: str, invalid_padding: str, auth_headers: Dict[str, str],
 ) -> None:
     response = await client.post(
-        "/v1/ingestion/check-otp", json=dict(padding=invalid_padding), headers=auth_headers,
+        endpoint, json=dict(padding=invalid_padding), headers=auth_headers,
     )
     assert response.status == 400
 
@@ -463,13 +474,13 @@ async def test_check_cun_fail(client: TestClient, auth_headers: Dict[str, str]) 
     assert await managers.analytics_redis.llen(config.ANALYTICS_QUEUE_KEY) == 0
 
 
-@pytest.mark.parametrize("countries_of_interest", [["DEN", "ES"], ["DE", "PL", "fff"]])
-async def test_invalid_countries(
-        client: TestClient, upload_data: Dict, countries_of_interest: list, headers: Dict[str, str]
+@pytest.mark.parametrize("last_his_number", ["1234", "abcde", "13A45dS8"])
+async def test_invalid_last_his_numbers(
+        client: TestClient, check_cun_data: Dict, last_his_number: str, headers: Dict[str, str]
 ) -> None:
-    upload_data["countries_of_interest"] = countries_of_interest
+    check_cun_data["last_his_number"] = last_his_number
     headers.update(CONTENT_TYPE_HEADER)
-    response = await client.post("/v1/ingestion/upload", json=upload_data, headers=headers)
+    response = await client.post("/v1/ingestion/check-cun", json=check_cun_data, headers=headers)
     assert response.status == 400
     data = await response.json()
     assert data["message"] == "Request not compliant with the defined schema."
