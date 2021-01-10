@@ -15,7 +15,7 @@ import json
 from contextlib import contextmanager
 from datetime import date
 from hashlib import sha256
-from typing import Dict, Iterator, Tuple
+from typing import Iterator, Tuple
 
 import responses
 from requests import PreparedRequest

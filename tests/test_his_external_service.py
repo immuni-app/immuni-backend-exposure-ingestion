@@ -13,8 +13,6 @@
 
 from hashlib import sha256
 
-import pytest
-
 from immuni_common.core.exceptions import (
     ApiException,
     OtpCollisionException,
