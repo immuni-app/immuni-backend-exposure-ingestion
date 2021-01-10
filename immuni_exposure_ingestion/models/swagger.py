@@ -113,3 +113,13 @@ class CheckOtp:
     padding = doc.String(
         description="The dummy data sent to protect against analysis of the traffic size."
     )
+
+
+class CheckCun:
+    """
+    Documentation class for the /v1/ingestion/check-cun request's body.
+    """
+
+    padding = doc.String(
+        description="The dummy data sent to protect against analysis of the traffic size."
+    )

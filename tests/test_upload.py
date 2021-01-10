@@ -23,7 +23,7 @@ from unittest.mock import patch
 import pytest
 from pytest_sanic.utils import TestClient
 
-from immuni_common.core.exceptions import UnauthorizedOtpException
+from immuni_common.core.exceptions import SchemaValidationException, UnauthorizedOtpException
 from immuni_common.helpers.otp import key_for_otp_sha
 from immuni_common.helpers.tests import mock_config
 from immuni_common.models.dataclasses import OtpData
@@ -47,7 +47,7 @@ UPLOAD_DATA = dict(
             "maximum_risk_score": 4,
             "exposure_info": [
                 {
-                    "date": "2020-05-16",
+                    "date": "2020-10-16",
                     "duration": 5,
                     "attenuation_value": 45,
                     "attenuation_durations": [300, 0, 0],
@@ -67,12 +67,19 @@ UPLOAD_DATA = dict(
     ],
 )
 
+CHECK_CUN_DATA = dict(last_his_number="12345678", symptoms_started_on="2020-12-23")
+
 CONTENT_TYPE_HEADER = {"Content-Type": "application/json; charset=UTF-8"}
 
 
 @pytest.fixture
 def upload_data() -> Dict:
     return deepcopy(UPLOAD_DATA)
+
+
+@pytest.fixture
+def check_cun_data() -> Dict:
+    return deepcopy(CHECK_CUN_DATA)
 
 
 @pytest.fixture
@@ -183,7 +190,9 @@ async def test_upload_bad_request_dummy_header(
     assert await managers.analytics_redis.llen(config.ANALYTICS_QUEUE_KEY) == 0
 
 
-@pytest.mark.parametrize("endpoint", ["/v1/ingestion/upload", "/v1/ingestion/check-otp"])
+@pytest.mark.parametrize(
+    "endpoint", ["/v1/ingestion/upload", "/v1/ingestion/check-otp", "/v1/ingestion/check-cun"]
+)
 @pytest.mark.parametrize("token", ["asd", "12345", "abcdefghijklmnopqrstuvwxy"])
 async def test_bad_auth_token_raises_validation_error(
     client: TestClient, upload_data: Dict, auth_headers: Dict[str, str], token: str, endpoint: str
@@ -212,9 +221,9 @@ async def test_upload_without_headers(
     assert await managers.analytics_redis.llen(config.ANALYTICS_QUEUE_KEY) == 0
 
 
-@pytest.mark.parametrize("endpoint", ["/v1/ingestion/check-otp"])
+@pytest.mark.parametrize("endpoint", ["/v1/ingestion/check-otp", "/v1/ingestion/check-cun"])
 @pytest.mark.parametrize("missing_header", ["Immuni-Dummy-Data"])
-async def test_check_otp_without_headers(
+async def test_check_otp_cun_without_headers(
     client: TestClient, endpoint: str, missing_header: str, headers: Dict[str, str]
 ) -> None:
     del headers[missing_header]
@@ -369,6 +378,8 @@ async def test_upload_otp_complete(
         payload=dict(
             province="AG",
             symptoms_started_on=date.today().isoformat(),
+            id_test_verification=None,
+            token_sha="5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5",
             exposure_detection_summaries=upload_data["exposure_detection_summaries"],
         ),
     )
@@ -387,11 +398,95 @@ async def test_invalid_paddings_upload(
     assert response.status == 400
 
 
+@pytest.mark.parametrize("endpoint", ["/v1/ingestion/check-otp", "/v1/ingestion/check-cun"])
 @pytest.mark.parametrize("invalid_padding", ["\\asd*&!@#", "a" * (config.MAX_PADDING_SIZE + 1)])
-async def test_invalid_paddings_check_otp(
-    client: TestClient, invalid_padding: str, auth_headers: Dict[str, str],
+async def test_invalid_paddings_check_otp_cun(
+    client: TestClient, endpoint: str, invalid_padding: str, auth_headers: Dict[str, str],
 ) -> None:
     response = await client.post(
-        "/v1/ingestion/check-otp", json=dict(padding=invalid_padding), headers=auth_headers,
+        endpoint, json=dict(padding=invalid_padding), headers=auth_headers,
     )
     assert response.status == 400
+
+
+async def test_dummy_data_check_cun_success(
+    client: TestClient, auth_headers: Dict[str, str]
+) -> None:
+    auth_headers["Immuni-Dummy-Data"] = "1"
+    auth_headers.update(CONTENT_TYPE_HEADER)
+    with patch("immuni_common.helpers.sanic.weighted_random", side_effect=lambda x: x[1].payload):
+        response = await client.post(
+            "/v1/ingestion/check-cun",
+            json=dict(
+                padding="4dd1",
+                last_his_number="12345678",
+                symptoms_started_on=date.today().isoformat(),
+            ),
+            headers=auth_headers,
+        )
+    assert response.status == 204
+    assert Upload.objects.count() == 0
+    assert await managers.analytics_redis.llen(config.ANALYTICS_QUEUE_KEY) == 0
+
+
+async def test_dummy_data_check_cun_fail(client: TestClient, auth_headers: Dict[str, str]) -> None:
+    auth_headers["Immuni-Dummy-Data"] = "1"
+    auth_headers.update(CONTENT_TYPE_HEADER)
+    with patch("immuni_common.helpers.sanic.weighted_random", side_effect=lambda x: x[0].payload):
+        response = await client.post(
+            "/v1/ingestion/check-cun",
+            json=dict(
+                padding="4dd1",
+                last_his_number="12345678",
+                symptoms_started_on=date.today().isoformat(),
+            ),
+            headers=auth_headers,
+        )
+    assert response.status == 401
+    data = await response.json()
+    assert data["message"] == UnauthorizedOtpException.error_message
+    assert Upload.objects.count() == 0
+    assert await managers.analytics_redis.llen(config.ANALYTICS_QUEUE_KEY) == 0
+
+
+@pytest.mark.parametrize("endpoint", ["/v1/ingestion/check-cun"])
+@pytest.mark.parametrize("missing_header", ["Immuni-Dummy-Data"])
+async def test_check_cun_without_headers(
+    client: TestClient, endpoint: str, missing_header: str, headers: Dict[str, str]
+) -> None:
+    del headers[missing_header]
+    headers.update(CONTENT_TYPE_HEADER)
+    response = await client.post(endpoint, headers=headers)
+    assert response.status == 400
+    data = await response.json()
+    assert data["message"] == "Request not compliant with the defined schema."
+    assert Upload.objects.count() == 0
+    assert await managers.analytics_redis.llen(config.ANALYTICS_QUEUE_KEY) == 0
+
+
+async def test_check_cun_fail(client: TestClient, auth_headers: Dict[str, str]) -> None:
+    auth_headers.update(CONTENT_TYPE_HEADER)
+    response = await client.post(
+        "/v1/ingestion/check-cun",
+        json=dict(
+            padding="4dd1", last_his_number="1234567", symptoms_started_on=date.today().isoformat()
+        ),
+        headers=auth_headers,
+    )
+    assert response.status == 400
+    data = await response.json()
+    assert data["message"] == SchemaValidationException.error_message
+    assert Upload.objects.count() == 0
+    assert await managers.analytics_redis.llen(config.ANALYTICS_QUEUE_KEY) == 0
+
+
+@pytest.mark.parametrize("last_his_number", ["1234", "abcde", "13A45dS8"])
+async def test_invalid_last_his_numbers(
+    client: TestClient, check_cun_data: Dict, last_his_number: str, headers: Dict[str, str]
+) -> None:
+    check_cun_data["last_his_number"] = last_his_number
+    headers.update(CONTENT_TYPE_HEADER)
+    response = await client.post("/v1/ingestion/check-cun", json=check_cun_data, headers=headers)
+    assert response.status == 400
+    data = await response.json()
+    assert data["message"] == "Request not compliant with the defined schema."

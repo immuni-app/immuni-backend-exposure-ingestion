@@ -13,7 +13,7 @@
 
 import json
 from datetime import date
-from typing import List
+from typing import List, Optional
 
 from immuni_common.models.dataclasses import ExposureDetectionSummary
 from immuni_common.models.marshmallow.schemas import ExposureDetectionSummarySchema
@@ -25,6 +25,8 @@ async def store_exposure_detection_summaries(
     exposure_detection_summaries: List[ExposureDetectionSummary],
     province: str,
     symptoms_started_on: date,
+    token_sha: str,
+    id_test_verification: Optional[str],
 ) -> None:
     """
     Store the given exposure detection summaries into the Analytics Redis.
@@ -32,6 +34,8 @@ async def store_exposure_detection_summaries(
     :param exposure_detection_summaries: the summaries to be stored.
     :param province: the province associated with the summaries.
     :param symptoms_started_on: the day in which the symptoms first appeared.
+    :param token_sha: the CUN or OTP in sha256 format.
+    :param id_test_verification: the id of the test only for token_sha equals to CUN.
     """
     await managers.analytics_redis.rpush(
         config.ANALYTICS_QUEUE_KEY,
@@ -41,6 +45,8 @@ async def store_exposure_detection_summaries(
                 payload=dict(
                     province=province,
                     symptoms_started_on=symptoms_started_on.isoformat(),
+                    token_sha=token_sha,
+                    id_test_verification=id_test_verification,
                     exposure_detection_summaries=ExposureDetectionSummarySchema().dump(
                         exposure_detection_summaries, many=True
                     ),
