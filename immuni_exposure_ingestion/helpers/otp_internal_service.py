@@ -61,7 +61,7 @@ def enable_otp(otp_sha: str, symptoms_started_on: date, id_test_verification: st
             extra=response.json(),
         )
         raise SchemaValidationException
-    elif response.status_code == 409:
+    if response.status_code == 409:
         _LOGGER.error(
             "Response %d received from external service.",
             response.status_code,

@@ -58,14 +58,14 @@ def verify_cun(cun_sha: str, last_his_number: str) -> str:
             extra=response.json(),
         )
         raise SchemaValidationException
-    elif response.status_code == 401:
+    if response.status_code == 401:
         _LOGGER.error(
             "Response %d received from external service.",
             response.status_code,
             extra=response.json(),
         )
         raise UnauthorizedOtpException
-    elif response.status_code == 409:
+    if response.status_code == 409:
         _LOGGER.error(
             "Response %d received from external service.",
             response.status_code,
