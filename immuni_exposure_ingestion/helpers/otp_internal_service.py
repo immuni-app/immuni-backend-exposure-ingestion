@@ -56,14 +56,12 @@ def enable_otp(otp_sha: str, symptoms_started_on: date, id_test_verification: st
 
     if response.status_code == 400:
         _LOGGER.info(
-            "Response received from external service.",
-            extra=response.json(),
+            "Response 400 received from external service.",
         )
         raise SchemaValidationException
     if response.status_code == 409:
         _LOGGER.info(
-            "Response received from external service.",
-            extra=response.json(),
+            "Response 409 received from external service.",
         )
         raise OtpCollisionException
 
