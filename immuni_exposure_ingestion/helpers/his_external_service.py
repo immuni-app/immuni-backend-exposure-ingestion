@@ -52,19 +52,13 @@ def verify_cun(cun_sha: str, last_his_number: str) -> str:
     )
 
     if response.status_code == 400:
-        _LOGGER.info(
-            "Response 400 received from external service.",
-        )
+        _LOGGER.info("Response 400 received from external service.",)
         raise SchemaValidationException
     if response.status_code == 401:
-        _LOGGER.info(
-            "Response 401 received from external service.",
-        )
+        _LOGGER.info("Response 401 received from external service.",)
         raise UnauthorizedOtpException
     if response.status_code == 409:
-        _LOGGER.info(
-            "Response 409 received from external service.",
-        )
+        _LOGGER.info("Response 409 received from external service.",)
         raise OtpCollisionException
 
     try:
