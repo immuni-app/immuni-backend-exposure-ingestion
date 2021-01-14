@@ -226,3 +226,157 @@ def mock_external_his_service_missing_id_test_verification(
         )
 
         yield
+
+
+@contextmanager
+def mock_invalidate_external_his_service_success() -> Iterator[None]:
+    with responses.RequestsMock() as mock_requests:
+
+        def request_callback(request: PreparedRequest) -> Tuple[int, Dict, str]:
+            assert request.body is not None
+            payload = json.loads(request.body)
+            # assert is an invalid cun or invalid id_test_verification.
+            assert payload == {
+                "cun": "b39e0733843b1b5d7",
+                "id_test_verification": "2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+            }
+            # return 200 as status code.
+            return (
+                200,
+                {},
+                json.dumps(
+                    dict(response_code=200, id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+                ),
+            )
+
+        mock_requests.add_callback(
+            responses.POST,
+            f"https://{config.HIS_INVALIDATE_EXTERNAL_URL}",
+            callback=request_callback,
+            content_type="application/json",
+        )
+
+        yield
+
+
+@contextmanager
+def mock_invalidate_external_his_service_schema_validation() -> Iterator[None]:
+    with responses.RequestsMock() as mock_requests:
+
+        def request_callback(request: PreparedRequest) -> Tuple[int, Dict, str]:
+            assert request.body is not None
+            payload = json.loads(request.body)
+            # assert is an invalid cun or invalid id_test_verification.
+            assert payload == {
+                "cun": "b39e0733843b1b5d7",
+                "id_test_verification": "2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+            }
+            # return 400 as status code.
+            return (
+                400,
+                {},
+                json.dumps(
+                    dict(response_code=400, id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+                ),
+            )
+
+        mock_requests.add_callback(
+            responses.POST,
+            f"https://{config.HIS_INVALIDATE_EXTERNAL_URL}",
+            callback=request_callback,
+            content_type="application/json",
+        )
+
+        yield
+
+
+@contextmanager
+def mock_invalidate_external_his_service_unauthorized_otp() -> Iterator[None]:
+    with responses.RequestsMock() as mock_requests:
+
+        def request_callback(request: PreparedRequest) -> Tuple[int, Dict, str]:
+            assert request.body is not None
+            payload = json.loads(request.body)
+            # assert the cun is not authorized.
+            assert payload == {
+                "cun": sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                "id_test_verification": "2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+            }
+            # return 401 as status code.
+            return (
+                401,
+                {},
+                json.dumps(
+                    dict(response_code=401, id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+                ),
+            )
+
+        mock_requests.add_callback(
+            responses.POST,
+            f"https://{config.HIS_INVALIDATE_EXTERNAL_URL}",
+            callback=request_callback,
+            content_type="application/json",
+        )
+
+        yield
+
+
+@contextmanager
+def mock_invalidate_external_his_service_otp_collision() -> Iterator[None]:
+    with responses.RequestsMock() as mock_requests:
+
+        def request_callback(request: PreparedRequest) -> Tuple[int, Dict, str]:
+            assert request.body is not None
+            payload = json.loads(request.body)
+            # assert cun has been already authorized.
+            assert payload == {
+                "cun": sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                "id_test_verification": "2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+            }
+            # return 409 as status code.
+            return (
+                409,
+                {},
+                json.dumps(
+                    dict(response_code=409, id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+                ),
+            )
+
+        mock_requests.add_callback(
+            responses.POST,
+            f"https://{config.HIS_INVALIDATE_EXTERNAL_URL}",
+            callback=request_callback,
+            content_type="application/json",
+        )
+
+        yield
+
+
+@contextmanager
+def mock_invalidate_external_his_service_api_exception() -> Iterator[None]:
+    with responses.RequestsMock() as mock_requests:
+
+        def request_callback(request: PreparedRequest) -> Tuple[int, Dict, str]:
+            assert request.body is not None
+            payload = json.loads(request.body)
+            assert payload == {
+                "cun": sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                "id_test_verification": "2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+            }
+            # return 500 as status code.
+            return (
+                500,
+                {},
+                json.dumps(
+                    dict(response_code=500, id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+                ),
+            )
+
+        mock_requests.add_callback(
+            responses.POST,
+            f"https://{config.HIS_INVALIDATE_EXTERNAL_URL}",
+            callback=request_callback,
+            content_type="application/json",
+        )
+
+        yield

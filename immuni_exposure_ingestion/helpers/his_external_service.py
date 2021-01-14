@@ -76,13 +76,14 @@ def verify_cun(cun_sha: str, last_his_number: str) -> str:
     return json_response["id_test_verification"]
 
 
-def invalidate_cun(cun_sha: str, id_test_verification: str) -> None:
+def invalidate_cun(cun_sha: str, id_test_verification: str) -> bool:
     """
     Invalidate the authorized CUN through HIS external service.
     The request should use mutual TLS authentication.
 
     :param cun_sha: the unique national code in sha256 format released by the HIS.
     :param id_test_verification: the id of the test returned from HIS service.
+    :return: boolean
     """
     remote_url = f"https://{config.HIS_INVALIDATE_EXTERNAL_URL}"
 
@@ -114,3 +115,5 @@ def invalidate_cun(cun_sha: str, id_test_verification: str) -> None:
 
     json_response = response.json()
     _LOGGER.info("Response received from external service.", extra=json_response)
+
+    return True

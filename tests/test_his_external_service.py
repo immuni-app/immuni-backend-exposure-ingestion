@@ -19,7 +19,7 @@ from immuni_common.core.exceptions import (
     SchemaValidationException,
     UnauthorizedOtpException,
 )
-from immuni_exposure_ingestion.helpers.his_external_service import verify_cun
+from immuni_exposure_ingestion.helpers.his_external_service import invalidate_cun, verify_cun
 from tests.fixtures.core import config_set
 from tests.fixtures.his_external_service import (
     mock_external_his_service_api_exception,
@@ -28,6 +28,11 @@ from tests.fixtures.his_external_service import (
     mock_external_his_service_schema_validation,
     mock_external_his_service_success,
     mock_external_his_service_unauthorized_otp,
+    mock_invalidate_external_his_service_api_exception,
+    mock_invalidate_external_his_service_otp_collision,
+    mock_invalidate_external_his_service_schema_validation,
+    mock_invalidate_external_his_service_success,
+    mock_invalidate_external_his_service_unauthorized_otp,
 )
 
 
@@ -106,4 +111,67 @@ def test_his_external_service_missing_id_test_verification() -> None:
                 cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(), last_his_number="12345678"
             )
         except UnauthorizedOtpException as e:
+            assert e
+
+
+def test_invalidate_his_external_service_success() -> None:
+    with config_set(
+        "HIS_INVALIDATE_EXTERNAL_URL", "example.com"
+    ), mock_invalidate_external_his_service_success():
+        response = invalidate_cun(
+            cun_sha="b39e0733843b1b5d7",
+            id_test_verification="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+        )
+        assert response is True
+
+
+def test_invalidate_his_external_service_schema_validation() -> None:
+    with config_set(
+        "HIS_INVALIDATE_EXTERNAL_URL", "example.com"
+    ), mock_invalidate_external_his_service_schema_validation():
+        try:
+            invalidate_cun(
+                cun_sha="b39e0733843b1b5d7",
+                id_test_verification="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+            )
+        except SchemaValidationException as e:
+            assert e
+
+
+def test_invalidate_his_external_service_unauthorized_otp() -> None:
+    with config_set(
+        "HIS_INVALIDATE_EXTERNAL_URL", "example.com"
+    ), mock_invalidate_external_his_service_unauthorized_otp():
+        try:
+            invalidate_cun(
+                cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                id_test_verification="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+            )
+        except UnauthorizedOtpException as e:
+            assert e
+
+
+def test_invalidate_his_external_service_otp_collision() -> None:
+    with config_set(
+        "HIS_INVALIDATE_EXTERNAL_URL", "example.com"
+    ), mock_invalidate_external_his_service_otp_collision():
+        try:
+            invalidate_cun(
+                cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                id_test_verification="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+            )
+        except OtpCollisionException as e:
+            assert e
+
+
+def test_invalidate_his_external_service_api_exception() -> None:
+    with config_set(
+        "HIS_INVALIDATE_EXTERNAL_URL", "example.com"
+    ), mock_invalidate_external_his_service_api_exception():
+        try:
+            invalidate_cun(
+                cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                id_test_verification="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+            )
+        except ApiException as e:
             assert e

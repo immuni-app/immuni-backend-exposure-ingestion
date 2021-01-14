@@ -45,7 +45,7 @@ from immuni_common.models.swagger import HeaderImmuniContentTypeJson
 from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.helpers.api import validate_otp_token
 from immuni_exposure_ingestion.helpers.exposure_data import store_exposure_detection_summaries
-from immuni_exposure_ingestion.helpers.his_external_service import verify_cun, invalidate_cun
+from immuni_exposure_ingestion.helpers.his_external_service import invalidate_cun, verify_cun
 from immuni_exposure_ingestion.helpers.otp_internal_service import enable_otp
 from immuni_exposure_ingestion.helpers.upload import slow_down_request, validate_token_format
 from immuni_exposure_ingestion.models.swagger import (
