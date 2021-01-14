@@ -74,3 +74,43 @@ def verify_cun(cun_sha: str, last_his_number: str) -> str:
         raise UnauthorizedOtpException
 
     return json_response["id_test_verification"]
+
+
+def invalidate_cun(cun_sha: str, id_test_verification: str) -> None:
+    """
+    Invalidate the authorized CUN through HIS external service.
+    The request should use mutual TLS authentication.
+
+    :param cun_sha: the unique national code in sha256 format released by the HIS.
+    :param id_test_verification: the id of the test returned from HIS service.
+    """
+    remote_url = f"https://{config.HIS_INVALIDATE_EXTERNAL_URL}"
+
+    body = dict(cun=cun_sha, id_test_verification=id_test_verification)
+
+    _LOGGER.info("Requesting invalidation with external HIS service.", extra=body)
+
+    response = requests.post(
+        remote_url,
+        json=body,
+        verify=config.HIS_SERVICE_CA_BUNDLE,
+        cert=config.HIS_SERVICE_CERTIFICATE,
+    )
+    if response.status_code == 400:
+        _LOGGER.info("Response 400 received from external service.",)
+        raise SchemaValidationException
+    if response.status_code == 401:
+        _LOGGER.info("Response 401 received from external service.",)
+        raise UnauthorizedOtpException
+    if response.status_code == 409:
+        _LOGGER.info("Response 409 received from external service.",)
+        raise OtpCollisionException
+
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as msg_error:
+        _LOGGER.error(msg_error)
+        raise ApiException from msg_error
+
+    json_response = response.json()
+    _LOGGER.info("Response received from external service.", extra=json_response)
