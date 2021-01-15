@@ -45,7 +45,7 @@ from immuni_common.models.swagger import HeaderImmuniContentTypeJson
 from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.helpers.api import validate_otp_token
 from immuni_exposure_ingestion.helpers.exposure_data import store_exposure_detection_summaries
-from immuni_exposure_ingestion.helpers.his_external_service import verify_cun
+from immuni_exposure_ingestion.helpers.his_external_service import invalidate_cun, verify_cun
 from immuni_exposure_ingestion.helpers.otp_internal_service import enable_otp
 from immuni_exposure_ingestion.helpers.upload import slow_down_request, validate_token_format
 from immuni_exposure_ingestion.models.swagger import (
@@ -176,6 +176,12 @@ async def upload(  # pylint: disable=too-many-arguments
         id_test_verification=otp.id_test_verification,
     )
 
+    if otp.id_test_verification and request.token:
+        invalidate_cun(cun_sha=request.token, id_test_verification=otp.id_test_verification)
+        _LOGGER.info(
+            "Calling HIS service to invalidate CUN.",
+            extra={"cun_sha": request.token, "id_test_verification": otp.id_test_verification},
+        )
     return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
 
 
@@ -291,10 +297,14 @@ async def check_cun(
     409 on CUN already authorized.
     """
     id_test_verification = verify_cun(cun_sha=request.token, last_his_number=last_his_number)
-    enable_otp(
-        otp_sha=request.token,
-        symptoms_started_on=symptoms_started_on,
-        id_test_verification=id_test_verification,
-    )
+
+    try:
+        enable_otp(
+            otp_sha=request.token,
+            symptoms_started_on=symptoms_started_on,
+            id_test_verification=id_test_verification,
+        )
+    except OtpCollisionException:
+        pass
 
     return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
