@@ -172,8 +172,7 @@ async def upload(  # pylint: disable=too-many-arguments
         exposure_detection_summaries,
         province=province,
         symptoms_started_on=otp.symptoms_started_on,
-        token_sha=request.token,
-        id_test_verification=otp.id_test_verification,
+        self_upload=bool(otp.id_test_verification and request.token),
     )
 
     if otp.id_test_verification and request.token:
