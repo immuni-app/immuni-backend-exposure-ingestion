@@ -378,8 +378,7 @@ async def test_upload_otp_complete(
         payload=dict(
             province="AG",
             symptoms_started_on=date.today().isoformat(),
-            id_test_verification=None,
-            token_sha="5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5",
+            self_upload=False,
             exposure_detection_summaries=upload_data["exposure_detection_summaries"],
         ),
     )
