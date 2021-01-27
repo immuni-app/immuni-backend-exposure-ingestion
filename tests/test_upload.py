@@ -69,6 +69,8 @@ UPLOAD_DATA = dict(
 
 CHECK_CUN_DATA = dict(last_his_number="12345678", symptoms_started_on="2020-12-23")
 
+CHECK_CUN_DATA_NOT_REQUIRED = dict(last_his_number="12345678")
+
 CONTENT_TYPE_HEADER = {"Content-Type": "application/json; charset=UTF-8"}
 
 
@@ -80,6 +82,11 @@ def upload_data() -> Dict:
 @pytest.fixture
 def check_cun_data() -> Dict:
     return deepcopy(CHECK_CUN_DATA)
+
+
+@pytest.fixture
+def check_cun_data_not_required() -> Dict:
+    return deepcopy(CHECK_CUN_DATA_NOT_REQUIRED)
 
 
 @pytest.fixture
@@ -486,6 +493,23 @@ async def test_invalid_last_his_numbers(
     check_cun_data["last_his_number"] = last_his_number
     headers.update(CONTENT_TYPE_HEADER)
     response = await client.post("/v1/ingestion/check-cun", json=check_cun_data, headers=headers)
+    assert response.status == 400
+    data = await response.json()
+    assert data["message"] == "Request not compliant with the defined schema."
+
+
+@pytest.mark.parametrize("last_his_number", ["1234", "abcde", "13A45dS8"])
+async def test_invalid_last_his_numbers_no_symptoms(
+    client: TestClient,
+    check_cun_data_not_required: Dict,
+    last_his_number: str,
+    headers: Dict[str, str],
+) -> None:
+    check_cun_data_not_required["last_his_number"] = last_his_number
+    headers.update(CONTENT_TYPE_HEADER)
+    response = await client.post(
+        "/v1/ingestion/check-cun", json=check_cun_data_not_required, headers=headers
+    )
     assert response.status == 400
     data = await response.json()
     assert data["message"] == "Request not compliant with the defined schema."
