@@ -16,7 +16,6 @@ from datetime import date, datetime
 from http import HTTPStatus
 from typing import List
 
-from immuni_common.models.marshmallow.validators import IsoDateValidator
 from marshmallow import ValidationError, fields
 from marshmallow.validate import Regexp
 from sanic import Blueprint
@@ -41,6 +40,7 @@ from immuni_common.models.marshmallow.schemas import (
     ExposureDetectionSummarySchema,
     TemporaryExposureKeySchema,
 )
+from immuni_common.models.marshmallow.validators import IsoDateValidator
 from immuni_common.models.mongoengine.temporary_exposure_key import TemporaryExposureKey
 from immuni_common.models.swagger import HeaderImmuniContentTypeJson
 from immuni_exposure_ingestion.core import config
@@ -255,6 +255,7 @@ async def check_otp(request: Request, padding: str) -> HTTPResponse:
 @doc.consumes(HeaderImmuniContentTypeJson(), location="header", required=True)
 @doc.consumes(HeaderImmuniAuthorizationOtpSha(), location="header", required=True)
 @doc_exception(SchemaValidationException)
+@doc_exception(DataConflictException)
 @doc_exception(ApiException)
 @doc_exception(UnauthorizedOtpException)
 @doc_exception(OtpCollisionException)
@@ -264,8 +265,9 @@ async def check_otp(request: Request, padding: str) -> HTTPResponse:
 @validate(
     location=Location.JSON,
     last_his_number=LastHisNumber(),
-    symptoms_started_on=fields.Date(required=False, missing=None, format="%Y-%m-%d",
-                                    validate=IsoDateValidator()),
+    symptoms_started_on=fields.Date(
+        required=False, missing=None, format="%Y-%m-%d", validate=IsoDateValidator()
+    ),
     padding=fields.String(validate=Regexp(rf"^[a-f0-9]{{0,{config.MAX_PADDING_SIZE}}}$")),
 )
 @validate_token_format
@@ -296,12 +298,12 @@ async def check_cun(
     :param request: the HTTP request object.
     :param padding: the dummy data sent to protect against analysis of the traffic size.
     :return: 204 if the parameters are valid, 400 on SchemaValidationException,
-    409 on CUN already authorized.
+    406 on DataConflictException, 409 on CUN already authorized.
     """
     verify_cun_response = verify_cun(cun_sha=request.token, last_his_number=last_his_number)
 
-    id_test_verification = verify_cun_response.get("id_test_verification")
-    date_test = verify_cun_response.get("date_test")
+    id_test_verification = verify_cun_response["id_test_verification"]
+    date_test = datetime.strptime(verify_cun_response["date_test"], "%Y-%m-%d")
 
     if symptoms_started_on is None:
         symptoms_started_on = date_test
