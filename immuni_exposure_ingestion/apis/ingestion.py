@@ -12,10 +12,11 @@
 #    along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-from datetime import date
+from datetime import date, datetime
 from http import HTTPStatus
 from typing import List
 
+from immuni_common.models.marshmallow.validators import IsoDateValidator
 from marshmallow import ValidationError, fields
 from marshmallow.validate import Regexp
 from sanic import Blueprint
@@ -35,7 +36,7 @@ from immuni_common.helpers.swagger import doc_exception
 from immuni_common.helpers.utils import WeightedPayload
 from immuni_common.models.dataclasses import ExposureDetectionSummary
 from immuni_common.models.enums import Location
-from immuni_common.models.marshmallow.fields import Countries, IsoDate, LastHisNumber, Province
+from immuni_common.models.marshmallow.fields import Countries, LastHisNumber, Province
 from immuni_common.models.marshmallow.schemas import (
     ExposureDetectionSummarySchema,
     TemporaryExposureKeySchema,
@@ -43,6 +44,7 @@ from immuni_common.models.marshmallow.schemas import (
 from immuni_common.models.mongoengine.temporary_exposure_key import TemporaryExposureKey
 from immuni_common.models.swagger import HeaderImmuniContentTypeJson
 from immuni_exposure_ingestion.core import config
+from immuni_exposure_ingestion.core.exceptions import DataConflictException
 from immuni_exposure_ingestion.helpers.api import validate_otp_token
 from immuni_exposure_ingestion.helpers.exposure_data import store_exposure_detection_summaries
 from immuni_exposure_ingestion.helpers.his_external_service import invalidate_cun, verify_cun
@@ -262,7 +264,8 @@ async def check_otp(request: Request, padding: str) -> HTTPResponse:
 @validate(
     location=Location.JSON,
     last_his_number=LastHisNumber(),
-    symptoms_started_on=IsoDate(),
+    symptoms_started_on=fields.Date(required=False, missing=None, format="%Y-%m-%d",
+                                    validate=IsoDateValidator()),
     padding=fields.String(validate=Regexp(rf"^[a-f0-9]{{0,{config.MAX_PADDING_SIZE}}}$")),
 )
 @validate_token_format
@@ -295,7 +298,15 @@ async def check_cun(
     :return: 204 if the parameters are valid, 400 on SchemaValidationException,
     409 on CUN already authorized.
     """
-    id_test_verification = verify_cun(cun_sha=request.token, last_his_number=last_his_number)
+    verify_cun_response = verify_cun(cun_sha=request.token, last_his_number=last_his_number)
+
+    id_test_verification = verify_cun_response.get("id_test_verification")
+    date_test = verify_cun_response.get("date_test")
+
+    if symptoms_started_on is None:
+        symptoms_started_on = date_test
+    elif symptoms_started_on > date_test:
+        raise DataConflictException
 
     try:
         enable_otp(

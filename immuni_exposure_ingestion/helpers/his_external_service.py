@@ -28,7 +28,7 @@ from immuni_exposure_ingestion.core import config
 _LOGGER = logging.getLogger(__name__)
 
 
-def verify_cun(cun_sha: str, last_his_number: str) -> str:
+def verify_cun(cun_sha: str, last_his_number: str) -> dict:
     """
     Return the response after validating the CUN and the last 8 number of HIS card
     through HIS external Service.
@@ -36,7 +36,7 @@ def verify_cun(cun_sha: str, last_his_number: str) -> str:
 
     :param cun_sha: the unique national code in sha256 format released by the HIS.
     :param last_his_number: the last 8 numbers of the HIS card.
-    :return: the id_test_verification.
+    :return: the response as dictionary.
     """
     remote_url = f"https://{config.HIS_VERIFY_EXTERNAL_URL}"
 
@@ -70,10 +70,10 @@ def verify_cun(cun_sha: str, last_his_number: str) -> str:
     json_response = response.json()
     _LOGGER.info("Response received from external service.", extra=json_response)
 
-    if not json_response["id_test_verification"]:
+    if not json_response["id_test_verification"] or not json_response["date_test"]:
         raise UnauthorizedOtpException
 
-    return json_response["id_test_verification"]
+    return json_response
 
 
 def invalidate_cun(cun_sha: str, id_test_verification: str) -> bool:
