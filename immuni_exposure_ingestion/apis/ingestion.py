@@ -303,7 +303,7 @@ async def check_cun(
     verify_cun_response = verify_cun(cun_sha=request.token, last_his_number=last_his_number)
 
     id_test_verification = verify_cun_response["id_test_verification"]
-    date_test = datetime.strptime(verify_cun_response["date_test"], "%Y-%m-%d")
+    date_test = datetime.strptime(verify_cun_response["date_test"], "%Y-%m-%d").date()
 
     if symptoms_started_on is None:
         symptoms_started_on = date_test
