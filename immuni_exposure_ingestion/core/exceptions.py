@@ -21,6 +21,6 @@ class DataConflictException(ApiException):
     Raised when the request symptoms_started_on date is after the swab data.
     """
 
-    status_code = HTTPStatus.PARTIAL_CONTENT
+    status_code = HTTPStatus.NOT_ACCEPTABLE
     error_message = "The date of onset symptoms is after the swab date."
     error_code = 1200
