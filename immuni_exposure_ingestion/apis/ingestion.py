@@ -44,7 +44,6 @@ from immuni_common.models.marshmallow.validators import IsoDateValidator
 from immuni_common.models.mongoengine.temporary_exposure_key import TemporaryExposureKey
 from immuni_common.models.swagger import HeaderImmuniContentTypeJson
 from immuni_exposure_ingestion.core import config
-from immuni_exposure_ingestion.core.exceptions import DataConflictException
 from immuni_exposure_ingestion.helpers.api import validate_otp_token
 from immuni_exposure_ingestion.helpers.exposure_data import store_exposure_detection_summaries
 from immuni_exposure_ingestion.helpers.his_external_service import invalidate_cun, verify_cun
@@ -255,7 +254,6 @@ async def check_otp(request: Request, padding: str) -> HTTPResponse:
 @doc.consumes(HeaderImmuniContentTypeJson(), location="header", required=True)
 @doc.consumes(HeaderImmuniAuthorizationOtpSha(), location="header", required=True)
 @doc_exception(SchemaValidationException)
-@doc_exception(DataConflictException)
 @doc_exception(ApiException)
 @doc_exception(UnauthorizedOtpException)
 @doc_exception(OtpCollisionException)
@@ -298,17 +296,15 @@ async def check_cun(
     :param request: the HTTP request object.
     :param padding: the dummy data sent to protect against analysis of the traffic size.
     :return: 204 if the parameters are valid, 400 on SchemaValidationException,
-    406 on DataConflictException, 409 on CUN already authorized.
+    409 on CUN already authorized.
     """
     verify_cun_response = verify_cun(cun_sha=request.token, last_his_number=last_his_number)
 
     id_test_verification = verify_cun_response["id_test_verification"]
     date_test = datetime.strptime(verify_cun_response["date_test"], "%Y-%m-%d").date()
 
-    if symptoms_started_on is None:
+    if symptoms_started_on is None or symptoms_started_on > date_test:
         symptoms_started_on = date_test
-    elif symptoms_started_on > date_test:
-        raise DataConflictException
 
     try:
         enable_otp(
