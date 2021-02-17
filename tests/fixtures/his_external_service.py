@@ -43,6 +43,7 @@ def mock_external_his_service_success(expected_content: Optional[str] = None) ->
                     dict(
                         id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
                         id_test_verification="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+                        date_test="2021-01-10",
                     )
                 ),
             )

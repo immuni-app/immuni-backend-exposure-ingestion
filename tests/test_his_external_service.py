@@ -40,10 +40,10 @@ def test_his_external_service() -> None:
     with config_set("HIS_VERIFY_EXTERNAL_URL", "example.com"), mock_external_his_service_success(
         expected_content="2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
     ):
-        id_verification_test = verify_cun(
+        json_response = verify_cun(
             cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(), last_his_number="12345678"
         )
-        assert id_verification_test == "2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
+        assert json_response
 
 
 def test_his_external_service_schema_validation() -> None:
