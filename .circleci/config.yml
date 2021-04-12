@@ -131,7 +131,7 @@ jobs:
           deps_cache_version: "v4"
       - pytest:
           coverage_path: ./immuni_exposure_ingestion
-          min_coverage: 96
+          min_coverage: 97
 
   check:
     docker:

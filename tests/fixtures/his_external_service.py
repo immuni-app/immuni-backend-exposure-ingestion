@@ -194,7 +194,7 @@ def mock_external_his_service_api_exception(
 
 
 @contextmanager
-def mock_external_his_service_missing_id_test_verification(
+def mock_external_his_service_missing_dict_values(
     expected_content: Optional[str] = None,
 ) -> Iterator[None]:
     with responses.RequestsMock() as mock_requests:
@@ -215,8 +215,40 @@ def mock_external_his_service_missing_id_test_verification(
                     dict(
                         id_test_verification=None,
                         id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+                        date_test=None,
                     )
                 ),
+            )
+
+        mock_requests.add_callback(
+            responses.POST,
+            f"https://{config.HIS_VERIFY_EXTERNAL_URL}",
+            callback=request_callback,
+            content_type="application/json",
+        )
+
+        yield
+
+
+@contextmanager
+def mock_external_his_service_missing_dict_keys(
+    expected_content: Optional[str] = None,
+) -> Iterator[None]:
+    with responses.RequestsMock() as mock_requests:
+
+        def request_callback(request: PreparedRequest) -> Tuple[int, Dict, str]:
+            assert request.body is not None
+            payload = json.loads(request.body)
+            if expected_content:
+                assert payload == {
+                    "cun": sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                    "last_his_number": "12345678",
+                }
+            # return 200 as status code, but missing id_test_verification.
+            return (
+                200,
+                {},
+                json.dumps(dict(id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",)),
             )
 
         mock_requests.add_callback(

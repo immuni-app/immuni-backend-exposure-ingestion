@@ -23,7 +23,8 @@ from immuni_exposure_ingestion.helpers.his_external_service import invalidate_cu
 from tests.fixtures.core import config_set
 from tests.fixtures.his_external_service import (
     mock_external_his_service_api_exception,
-    mock_external_his_service_missing_id_test_verification,
+    mock_external_his_service_missing_dict_keys,
+    mock_external_his_service_missing_dict_values,
     mock_external_his_service_otp_collision,
     mock_external_his_service_schema_validation,
     mock_external_his_service_success,
@@ -100,10 +101,24 @@ def test_his_external_service_api_exception() -> None:
             assert e
 
 
-def test_his_external_service_missing_id_test_verification() -> None:
+def test_his_external_service_missing_dict_values() -> None:
     with config_set(
         "HIS_VERIFY_EXTERNAL_URL", "example.com"
-    ), mock_external_his_service_missing_id_test_verification(
+    ), mock_external_his_service_missing_dict_values(
+        expected_content="2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
+    ):
+        try:
+            verify_cun(
+                cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(), last_his_number="12345678"
+            )
+        except UnauthorizedOtpException as e:
+            assert e
+
+
+def test_his_external_service_missing_dict_keys() -> None:
+    with config_set(
+        "HIS_VERIFY_EXTERNAL_URL", "example.com"
+    ), mock_external_his_service_missing_dict_keys(
         expected_content="2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
     ):
         try:
