@@ -14,15 +14,19 @@
 from __future__ import annotations
 
 import logging
+from datetime import date
+from typing import Any, Dict
 
 import requests
 
 from immuni_common.core.exceptions import (
     ApiException,
+    DgcNotFoundException,
     OtpCollisionException,
     SchemaValidationException,
     UnauthorizedOtpException,
 )
+from immuni_common.models.enums import AuthCodeType
 from immuni_exposure_ingestion.core import config
 
 _LOGGER = logging.getLogger(__name__)
@@ -120,3 +124,62 @@ def invalidate_cun(cun_sha: str, id_test_verification: str) -> bool:
     _LOGGER.info("Response received from external service.", extra=json_response)
 
     return True
+
+
+def retrieve_dgc(
+    auth_code_sha: str, last_his_number: str, his_expiring_date: date, token_type: str
+) -> str:
+    """
+    Return the response after validating the CUN and the last 8 number of HIS card
+    through HIS external Service.
+    The request should use mutual TLS authentication.
+
+    :param auth_code_sha: the auth code in sha256 format released by the HIS.
+    :param last_his_number: the last 8 numbers of the HIS card.
+    :param his_expiring_date: the expiration date of the HIS card.
+    :param token_type: the type of the auth code.
+    :return: the response as string (base64 of the qr-code).
+    """
+
+    remote_url = f"https://{config.DGC_EXTERNAL_URL}"
+
+    params: Dict[str, Any] = dict(
+        mode="ONLY_QRCODE",
+        healthInsuranceCardNumber=last_his_number,
+        healthInsuranceCardDate=his_expiring_date,
+    )
+
+    if token_type != AuthCodeType.OTP.value:
+        params["sourceDocumentIDSHA256"] = auth_code_sha
+    else:
+        params["authCodeSHA256"] = auth_code_sha
+
+    _LOGGER.info("Retrieving Digital Green Certificate with external HIS service.", extra=params)
+
+    response = requests.get(
+        remote_url,
+        params=params,
+        verify=config.HIS_SERVICE_CA_BUNDLE,
+        cert=config.HIS_SERVICE_CERTIFICATE,
+    )
+
+    if response.status_code == 400:
+        _LOGGER.info("Response 400 received from external service.",)
+        raise DgcNotFoundException
+
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as msg_error:
+        _LOGGER.error(msg_error)
+        raise ApiException from msg_error
+
+    json_response = response.json()
+    _LOGGER.info("DGC retrieved from external service.", extra=json_response)
+
+    if "data" not in json_response or "qrcode" not in json_response["data"]:
+        raise ApiException
+
+    if not json_response["data"]["qrcode"] or len(json_response["data"]["qrcode"]) > 1:
+        raise ApiException
+
+    return json_response["data"]["qrcode"][0]
