@@ -23,6 +23,14 @@ CHECK_CUN_REQUESTS = Counter(
     documentation="Number of check-cun requests the server responded to.",
 )
 
+GET_DGC_REQUESTS = Counter(
+    namespace=NAMESPACE,
+    subsystem=Subsystem.API.value,
+    name="get_dgc_requests",
+    labelnames=("dummy", "http_status"),
+    documentation="Number of get-dgc requests the server responded to.",
+)
+
 UPLOAD_REQUESTS = Counter(
     namespace=NAMESPACE,
     subsystem=Subsystem.API.value,

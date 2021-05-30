@@ -120,6 +120,28 @@ class CheckCun:
     Documentation class for the /v1/ingestion/check-cun request's body.
     """
 
+    last_his_number = doc.String(description="The last 8 char of the HIS card.", required=True)
+    symptoms_started_on = doc.String(
+        "The date the patient started having the first symptoms (ISO format, e.g., 2020-02-25).",
+        required=False,
+    )
+    padding = doc.String(
+        description="The dummy data sent to protect against analysis of the traffic size."
+    )
+
+
+class GetDcg:
+    """
+    Documentation class for the /v1/ingestion/get-dgc request's body.
+    """
+
+    last_his_number = doc.String(description="The last 8 char of the HIS card.", required=True)
+    his_expiring_date = doc.String(
+        "The expiration date of the HIS card (ISO format, e.g., 2020-02-25).", required=True,
+    )
+    token_type = doc.String(
+        "The type of auth code chosen by the caller (e.g., otp, cun, nucg, nrfe).", required=True,
+    )
     padding = doc.String(
         description="The dummy data sent to protect against analysis of the traffic size."
     )
