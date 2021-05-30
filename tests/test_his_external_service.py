@@ -10,16 +10,21 @@
 #    GNU Affero General Public License for more details.
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program. If not, see <https://www.gnu.org/licenses/>.
-
+from datetime import date
 from hashlib import sha256
 
 from immuni_common.core.exceptions import (
     ApiException,
+    DgcNotFoundException,
     OtpCollisionException,
     SchemaValidationException,
     UnauthorizedOtpException,
 )
-from immuni_exposure_ingestion.helpers.his_external_service import invalidate_cun, verify_cun
+from immuni_exposure_ingestion.helpers.his_external_service import (
+    invalidate_cun,
+    retrieve_dgc,
+    verify_cun,
+)
 from tests.fixtures.core import config_set
 from tests.fixtures.his_external_service import (
     mock_external_his_service_api_exception,
@@ -34,6 +39,12 @@ from tests.fixtures.his_external_service import (
     mock_invalidate_external_his_service_schema_validation,
     mock_invalidate_external_his_service_success,
     mock_invalidate_external_his_service_unauthorized_otp,
+    mock_retrieve_dgc_api_exception,
+    mock_retrieve_dgc_api_exception2,
+    mock_retrieve_dgc_api_exception3,
+    mock_retrieve_dgc_no_otp_success,
+    mock_retrieve_dgc_not_found,
+    mock_retrieve_dgc_success,
 )
 
 
@@ -187,6 +198,80 @@ def test_invalidate_his_external_service_api_exception() -> None:
             invalidate_cun(
                 cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
                 id_test_verification="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+            )
+        except ApiException as e:
+            assert e
+
+
+def test_retrieve_dgc_success() -> None:
+    with config_set("DGC_EXTERNAL_URL", "example.com"), mock_retrieve_dgc_success():
+        response = retrieve_dgc(
+            auth_code_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+            last_his_number="12345678",
+            his_expiring_date=date.today(),
+            token_type="otp",
+        )
+        assert response == "string"
+
+
+def test_retrieve_dgc_no_otp_success() -> None:
+    with config_set("DGC_EXTERNAL_URL", "example.com"), mock_retrieve_dgc_no_otp_success():
+        response = retrieve_dgc(
+            auth_code_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+            last_his_number="12345678",
+            his_expiring_date=date.today(),
+            token_type="nucg",
+        )
+        assert response == "string"
+
+
+def test_retrieve_no_dgc_exception() -> None:
+    with config_set("DGC_EXTERNAL_URL", "example.com"), mock_retrieve_dgc_not_found():
+        try:
+            retrieve_dgc(
+                auth_code_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                last_his_number="12345678",
+                his_expiring_date=date.today(),
+                token_type="otp",
+            )
+        except DgcNotFoundException as e:
+            assert e
+
+
+def test_retrieve_api_exception() -> None:
+    with config_set("DGC_EXTERNAL_URL", "example.com"), mock_retrieve_dgc_api_exception():
+        try:
+            retrieve_dgc(
+                auth_code_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                last_his_number="12345678",
+                his_expiring_date=date.today(),
+                token_type="otp",
+            )
+        except ApiException as e:
+            assert e
+
+
+def test_retrieve_api_exception2() -> None:
+    with config_set("DGC_EXTERNAL_URL", "example.com"), mock_retrieve_dgc_api_exception2():
+        try:
+            retrieve_dgc(
+                auth_code_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                last_his_number="12345678",
+                his_expiring_date=date.today(),
+                token_type="cun",
+            )
+        except ApiException as e:
+            assert e
+
+
+def test_retrieve_api_exception3() -> None:
+    with config_set("DGC_EXTERNAL_URL", "example.com"), mock_retrieve_dgc_api_exception3():
+        try:
+            retrieve_dgc(
+                auth_code_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                last_his_number="12345678",
+                his_expiring_date=date.today(),
+                token_type="nrfe",
             )
         except ApiException as e:
             assert e
