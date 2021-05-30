@@ -80,7 +80,7 @@ To preserve functionality after every change, please ensure that all existing te
 poetry run pytest \
     --cov=immuni_exposure_ingestion \
     --cov-branch \
-    --cov-fail-under=98 \
+    --cov-fail-under=97 \
     --ignore=common
 ```
 
