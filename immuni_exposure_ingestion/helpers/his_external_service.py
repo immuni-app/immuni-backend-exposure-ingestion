@@ -26,7 +26,7 @@ from immuni_common.core.exceptions import (
     SchemaValidationException,
     UnauthorizedOtpException,
 )
-from immuni_common.models.enums import AuthCodeType
+from immuni_common.models.enums import TokenType
 from immuni_exposure_ingestion.core import config
 
 _LOGGER = logging.getLogger(__name__)
@@ -127,18 +127,18 @@ def invalidate_cun(cun_sha: str, id_test_verification: str) -> bool:
 
 
 def retrieve_dgc(
-    auth_code_sha: str, last_his_number: str, his_expiring_date: date, token_type: str
+    token_code_sha: str, last_his_number: str, his_expiring_date: date, token_type: str
 ) -> str:
     """
-    Return the response after validating the CUN and the last 8 number of HIS card
-    through HIS external Service.
+    Return the response after validating the sha256 token, the last 8 numbers and
+    the expiration date of the HIS card through external PN-DGC service.
     The request should use mutual TLS authentication.
 
-    :param auth_code_sha: the auth code in sha256 format released by the HIS.
+    :param token_code_sha: the token code in sha256 format.
     :param last_his_number: the last 8 numbers of the HIS card.
     :param his_expiring_date: the expiration date of the HIS card.
     :param token_type: the type of the auth code.
-    :return: the response as string (base64 of the qr-code).
+    :return: string base64 encoded.
     """
 
     remote_url = f"https://{config.DGC_EXTERNAL_URL}"
@@ -149,18 +149,18 @@ def retrieve_dgc(
         healthInsuranceCardDate=his_expiring_date,
     )
 
-    if token_type != AuthCodeType.OTP.value:
-        params["sourceDocumentIDSHA256"] = auth_code_sha
+    if token_type != TokenType.AUTHCODE.value:
+        params["sourceDocumentIDSHA256"] = token_code_sha
     else:
-        params["authCodeSHA256"] = auth_code_sha
+        params["authCodeSHA256"] = token_code_sha
 
-    _LOGGER.info("Retrieving Digital Green Certificate with external HIS service.", extra=params)
+    _LOGGER.info("Retrieving Digital Green Certificate with external PN-DGC service.", extra=params)
 
     response = requests.get(
         remote_url,
         params=params,
-        verify=config.HIS_SERVICE_CA_BUNDLE,
-        cert=config.HIS_SERVICE_CERTIFICATE,
+        verify=config.DGC_SERVICE_CERTIFICATE,
+        cert=config.DGC_SERVICE_CA_BUNDLE,
     )
 
     if response.status_code == 400:
@@ -178,8 +178,7 @@ def retrieve_dgc(
 
     if "data" not in json_response or "qrcode" not in json_response["data"]:
         raise ApiException
-
-    if not json_response["data"]["qrcode"] or len(json_response["data"]["qrcode"]) > 1:
+    if not json_response["data"]["qrcode"]:
         raise ApiException
 
-    return json_response["data"]["qrcode"][0]
+    return json_response["data"]["qrcode"]
