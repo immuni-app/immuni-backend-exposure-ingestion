@@ -75,7 +75,7 @@ GET_DGC_DATA = dict(
     padding="4dd1",
     last_his_number="12345678",
     his_expiring_date=date.today().isoformat(),
-    token_type="otp",
+    token_type="authcode",
 )
 
 CONTENT_TYPE_HEADER = {"Content-Type": "application/json; charset=UTF-8"}
@@ -557,7 +557,7 @@ async def test_dummy_data_get_dgc_success(client: TestClient, auth_headers: Dict
                 padding="4dd1",
                 last_his_number="12345678",
                 his_expiring_date=date.today().isoformat(),
-                token_type="otp",
+                token_type="authcode",
             ),
             headers=auth_headers,
         )
@@ -574,7 +574,7 @@ async def test_dummy_data_get_dgc_fail(client: TestClient, auth_headers: Dict[st
                 padding="4dd1",
                 last_his_number="12345678",
                 his_expiring_date=date.today().isoformat(),
-                token_type="otp",
+                token_type="authcode",
             ),
             headers=auth_headers,
         )
