@@ -35,7 +35,7 @@ from immuni_common.helpers.sanic import handle_dummy_requests, validate
 from immuni_common.helpers.swagger import doc_exception
 from immuni_common.helpers.utils import WeightedPayload
 from immuni_common.models.dataclasses import ExposureDetectionSummary
-from immuni_common.models.enums import AuthCodeType, Location
+from immuni_common.models.enums import Location, TokenType
 from immuni_common.models.marshmallow.fields import Countries, EnumField, LastHisNumber, Province
 from immuni_common.models.marshmallow.schemas import (
     ExposureDetectionSummarySchema,
@@ -350,7 +350,7 @@ async def check_cun(
     location=Location.JSON,
     last_his_number=LastHisNumber(),
     his_expiring_date=fields.Date(required=True, format="%Y-%m-%d"),
-    token_type=EnumField(enum=AuthCodeType),
+    token_type=EnumField(enum=TokenType),
     padding=fields.String(validate=Regexp(rf"^[a-f0-9]{{0,{config.MAX_PADDING_SIZE}}}$")),
 )
 @validate_token_format
@@ -373,19 +373,19 @@ async def get_dgc(
     request: Request, last_his_number: str, his_expiring_date: date, token_type: str, padding: str,
 ) -> HTTPResponse:
     """
-    Check the auth code and the last 8 numbers validity of HIS card through
-     HIS external service. Then enable the CUN through the OTP service.
+    Check the sha256 token, the last 8 numbers and the expiration date of the HIS card via the
+    external PN-DGC service to allow the citizen to recover their DGC.
 
     :param last_his_number: the last 8 numbers of the HIS card.
     :param his_expiring_date: the expiration date of the HIS card.
     :param token_type: the type of the token sent by the mobile caller.
     :param request: the HTTP request object.
     :param padding: the dummy data sent to protect against analysis of the traffic size.
-    :return: 200 if dgc successfully retrieved, 400 on SchemaValidationException,
+    :return: 200 if DGC successfully retrieved, 400 on SchemaValidationException,
     404 if DGC not found.
     """
     dgc_response = retrieve_dgc(
-        auth_code_sha=request.token,
+        token_code_sha=request.token,
         last_his_number=last_his_number,
         his_expiring_date=his_expiring_date,
         token_type=token_type,
