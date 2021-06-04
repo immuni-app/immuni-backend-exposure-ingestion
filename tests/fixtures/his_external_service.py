@@ -453,7 +453,7 @@ def mock_retrieve_dgc_not_found() -> Iterator[None]:
             authCodeSHA256=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
         )
         url = f"{base_url}?{urlencode(params)}"
-        status_code = 400
+        status_code = 404
 
         mock_requests.add(
             responses.GET,
@@ -524,7 +524,7 @@ def mock_retrieve_dgc_api_exception2() -> Iterator[None]:
             mode="ONLY_QRCODE",
             healthInsuranceCardNumber="14345698",
             healthInsuranceCardDate=date.today().isoformat(),
-            sourceDocumentIDSHA256="8edafc8c445aeb9b531ac14ce5d73671f1d5e97cb2f1dbdc5083c62f18ebb708",
+            sourceDocumentIDSHA256=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
         )
         url = f"{base_url}?{urlencode(params)}"
         status_code = 500
@@ -548,7 +548,7 @@ def mock_retrieve_dgc_api_exception3() -> Iterator[None]:
             mode="ONLY_QRCODE",
             healthInsuranceCardNumber="14345698",
             healthInsuranceCardDate=date.today().isoformat(),
-            sourceDocumentIDSHA256="8edafc8c445aeb9b531ac14ce5d73671f1d5e97cb2f1dbdc5083c62f18ebb708",
+            sourceDocumentIDSHA256=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
         )
         url = f"{base_url}?{urlencode(params)}"
         status_code = 200
@@ -557,6 +557,31 @@ def mock_retrieve_dgc_api_exception3() -> Iterator[None]:
             responses.GET,
             url,
             body=json.dumps({"data": {"qrcode": ""}}),
+            status=status_code,
+            content_type="application/json",
+            match_querystring=False,
+        )
+
+        yield
+
+
+@contextmanager
+def mock_retrieve_dgc_api_exception4() -> Iterator[None]:
+    with responses.RequestsMock() as mock_requests:
+        base_url = f"https://{config.DGC_EXTERNAL_URL}"
+        params = dict(
+            mode="ONLY_QRCODE",
+            healthInsuranceCardNumber="14345698",
+            healthInsuranceCardDate=date.today().isoformat(),
+            sourceDocumentIDSHA256=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+        )
+        url = f"{base_url}?{urlencode(params)}"
+        status_code = 400
+
+        mock_requests.add(
+            responses.GET,
+            url,
+            body=json.dumps({"data": {"qrcode": "prova"}}),
             status=status_code,
             content_type="application/json",
             match_querystring=False,

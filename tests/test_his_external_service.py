@@ -42,6 +42,7 @@ from tests.fixtures.his_external_service import (
     mock_retrieve_dgc_api_exception1,
     mock_retrieve_dgc_api_exception2,
     mock_retrieve_dgc_api_exception3,
+    mock_retrieve_dgc_api_exception4,
     mock_retrieve_dgc_no_authcode_success,
     mock_retrieve_dgc_not_found,
     mock_retrieve_dgc_success,
@@ -266,6 +267,19 @@ def test_retrieve_api_exception2() -> None:
 
 def test_retrieve_api_exception3() -> None:
     with config_set("DGC_EXTERNAL_URL", "example.com"), mock_retrieve_dgc_api_exception3():
+        try:
+            retrieve_dgc(
+                token_code_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                last_his_number="12345678",
+                his_expiring_date=date.today(),
+                token_type="authcode",
+            )
+        except ApiException as e:
+            assert e
+
+
+def test_retrieve_api_exception4() -> None:
+    with config_set("DGC_EXTERNAL_URL", "example.com"), mock_retrieve_dgc_api_exception4():
         try:
             retrieve_dgc(
                 token_code_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
