@@ -159,8 +159,8 @@ def retrieve_dgc(
     response = requests.get(
         remote_url,
         params=params,
-        verify=config.DGC_SERVICE_CERTIFICATE,
-        cert=config.DGC_SERVICE_CA_BUNDLE,
+        verify=config.DGC_SERVICE_CA_BUNDLE,
+        cert=config.DGC_SERVICE_CERTIFICATE,
     )
 
     if response.status_code == 400:
