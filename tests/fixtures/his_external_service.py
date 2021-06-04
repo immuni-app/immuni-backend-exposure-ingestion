@@ -425,7 +425,7 @@ def mock_retrieve_dgc_success() -> Iterator[None]:
             mode="ONLY_QRCODE",
             healthInsuranceCardNumber="14345698",
             healthInsuranceCardDate=date.today().isoformat(),
-            authCodeSHA256="8edafc8c445aeb9b531ac14ce5d73671f1d5e97cb2f1dbdc5083c62f18ebb708",
+            authCodeSHA256=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
         )
         url = f"{base_url}?{urlencode(params)}"
         status_code = 200
@@ -450,7 +450,7 @@ def mock_retrieve_dgc_not_found() -> Iterator[None]:
             mode="ONLY_QRCODE",
             healthInsuranceCardNumber="14345698",
             healthInsuranceCardDate=date.today().isoformat(),
-            authCodeSHA256="8edafc8c445aeb9b531ac14ce5d73671f1d5e97cb2f1dbdc5083c62f18ebb708",
+            authCodeSHA256=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
         )
         url = f"{base_url}?{urlencode(params)}"
         status_code = 400
@@ -474,7 +474,7 @@ def mock_retrieve_dgc_no_authcode_success() -> Iterator[None]:
             mode="ONLY_QRCODE",
             healthInsuranceCardNumber="14345698",
             healthInsuranceCardDate=date.today().isoformat(),
-            sourceDocumentIDSHA256="8edafc8c445aeb9b531ac14ce5d73671f1d5e97cb2f1dbdc5083c62f18ebb708",
+            sourceDocumentIDSHA256=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
         )
         url = f"{base_url}?{urlencode(params)}"
         status_code = 200
@@ -499,7 +499,7 @@ def mock_retrieve_dgc_api_exception1() -> Iterator[None]:
             mode="ONLY_QRCODE",
             healthInsuranceCardNumber="14345698",
             healthInsuranceCardDate=date.today().isoformat(),
-            sourceDocumentIDSHA256="8edafc8c445aeb9b531ac14ce5d73671f1d5e97cb2f1dbdc5083c62f18ebb708",
+            sourceDocumentIDSHA256=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
         )
         url = f"{base_url}?{urlencode(params)}"
         status_code = 200
