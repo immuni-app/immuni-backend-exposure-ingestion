@@ -164,7 +164,10 @@ def retrieve_dgc(
     )
 
     if response.status_code == 400:
-        _LOGGER.info("Response 400 received from external service.",)
+        _LOGGER.info("Response 400 received from PN-DGC external service.", extra=params)
+        raise ApiException
+    if response.status_code == 404:
+        _LOGGER.info("Response 404 received from PN-DGC external service.", extra=params)
         raise DgcNotFoundException
 
     try:
