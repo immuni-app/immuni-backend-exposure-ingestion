@@ -10,7 +10,7 @@
 #    GNU Affero General Public License for more details.
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program. If not, see <https://www.gnu.org/licenses/>.
-
+import enum
 import logging
 from datetime import date, datetime
 from http import HTTPStatus
@@ -370,7 +370,11 @@ async def check_cun(
     ]
 )
 async def get_dgc(
-    request: Request, last_his_number: str, his_expiring_date: date, token_type: str, padding: str,
+    request: Request,
+    last_his_number: str,
+    his_expiring_date: date,
+    token_type: TokenType,
+    padding: str,
 ) -> HTTPResponse:
     """
     Check the sha256 token, the last 8 numbers and the expiration date of the HIS card via the
@@ -388,7 +392,7 @@ async def get_dgc(
         token_code_sha=request.token,
         last_his_number=last_his_number,
         his_expiring_date=his_expiring_date,
-        token_type=token_type,
+        token_type=token_type.value,
     )
 
     return HTTPResponse(status=HTTPStatus.OK.value, body=dgc_response)
