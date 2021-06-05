@@ -212,7 +212,7 @@ def test_retrieve_dgc_success() -> None:
             his_expiring_date=date.today(),
             token_type="authcode",
         )
-        assert response == "string"
+        assert response
 
 
 def test_retrieve_dgc_no_authcode_success() -> None:
@@ -223,7 +223,7 @@ def test_retrieve_dgc_no_authcode_success() -> None:
             his_expiring_date=date.today(),
             token_type="nucg",
         )
-        assert response == "string"
+        assert response
 
 
 def test_retrieve_no_dgc_exception() -> None:

@@ -128,7 +128,7 @@ def invalidate_cun(cun_sha: str, id_test_verification: str) -> bool:
 
 def retrieve_dgc(
     token_code_sha: str, last_his_number: str, his_expiring_date: date, token_type: str
-) -> str:
+) -> dict:
     """
     Return the response after validating the sha256 token, the last 8 numbers and
     the expiration date of the HIS card through external PN-DGC service.
@@ -138,7 +138,7 @@ def retrieve_dgc(
     :param last_his_number: the last 8 numbers of the HIS card.
     :param his_expiring_date: the expiration date of the HIS card.
     :param token_type: the type of the auth code.
-    :return: string base64 encoded.
+    :return: dict.
     """
 
     remote_url = f"https://{config.DGC_EXTERNAL_URL}"
@@ -184,4 +184,4 @@ def retrieve_dgc(
     if not json_response["data"]["qrcode"]:
         raise ApiException
 
-    return json_response["data"]["qrcode"]
+    return {"qrcode": json_response["data"]["qrcode"]}
