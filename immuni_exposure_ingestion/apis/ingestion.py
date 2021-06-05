@@ -30,7 +30,7 @@ from immuni_common.core.exceptions import (
     UnauthorizedOtpException,
 )
 from immuni_common.helpers.cache import cache
-from immuni_common.helpers.sanic import handle_dummy_requests, validate
+from immuni_common.helpers.sanic import handle_dummy_requests, json_response, validate
 from immuni_common.helpers.swagger import doc_exception
 from immuni_common.helpers.utils import WeightedPayload
 from immuni_common.models.dataclasses import ExposureDetectionSummary
@@ -56,6 +56,7 @@ from immuni_exposure_ingestion.helpers.upload import slow_down_request, validate
 from immuni_exposure_ingestion.models.swagger import (
     CheckCun,
     CheckOtp,
+    DcgResponse,
     GetDcg,
     HeaderImmuniAuthorizationOtpSha,
     HeaderImmuniClientClock,
@@ -343,7 +344,7 @@ async def check_cun(
 @doc_exception(DgcNotFoundException)
 @doc_exception(ApiException)
 @doc.response(
-    HTTPStatus.OK.value, str, description="QR Code successfully retrieved.",
+    HTTPStatus.OK.value, DcgResponse, description="QR Code successfully retrieved.",
 )
 @validate(
     location=Location.JSON,
@@ -394,4 +395,4 @@ async def get_dgc(
         token_type=token_type.value,
     )
 
-    return HTTPResponse(status=HTTPStatus.OK.value, body=dgc_response)
+    return json_response(body=dgc_response, status=HTTPStatus.OK)
