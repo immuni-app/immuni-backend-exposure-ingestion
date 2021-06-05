@@ -145,3 +145,11 @@ class GetDcg:
     padding = doc.String(
         description="The dummy data sent to protect against analysis of the traffic size."
     )
+
+
+class DcgResponse:
+    """
+    Documentation class for the /v1/ingestion/get-dgc successful response.
+    """
+
+    qrcode = doc.String(description="The base64 of the qrcode")
