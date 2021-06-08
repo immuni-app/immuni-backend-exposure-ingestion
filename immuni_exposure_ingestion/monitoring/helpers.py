@@ -11,6 +11,7 @@ from immuni_common.models.swagger import HeaderImmuniDummyData
 from immuni_exposure_ingestion.monitoring.api import (
     CHECK_CUN_REQUESTS,
     CHECK_OTP_REQUESTS,
+    GET_DGC_REQUESTS,
     UPLOAD_REQUESTS,
 )
 
@@ -88,6 +89,32 @@ def monitor_check_cun(f: Callable[..., Coroutine[Any, Any, HTTPResponse]]) -> Ca
             CHECK_CUN_REQUESTS.labels(is_dummy, response.status).inc()
         except ApiException as error:
             CHECK_CUN_REQUESTS.labels(is_dummy, error.status_code.value).inc()
+            raise
+        return response
+
+    return _wrapper
+
+
+def monitor_get_dgc(f: Callable[..., Coroutine[Any, Any, HTTPResponse]]) -> Callable:
+    """
+    Decorator to monitor the metrics relative to the check-cun request.
+    :param f: the check-cun function to decorate.
+    :return: the decorated function.
+    """
+
+    @wraps(f)
+    @validate(
+        location=Location.HEADERS,
+        is_dummy=IntegerBoolField(
+            required=True, allow_strings=True, data_key=HeaderImmuniDummyData.DATA_KEY,
+        ),
+    )
+    async def _wrapper(*args: Any, is_dummy: bool, **kwargs: Any) -> HTTPResponse:
+        try:
+            response = await f(*args, **kwargs)
+            GET_DGC_REQUESTS.labels(is_dummy, response.status).inc()
+        except ApiException as error:
+            GET_DGC_REQUESTS.labels(is_dummy, error.status_code.value).inc()
             raise
         return response
 

@@ -47,7 +47,7 @@ UPLOAD_DATA = dict(
             "maximum_risk_score": 4,
             "exposure_info": [
                 {
-                    "date": "2020-10-16",
+                    "date": "2021-05-16",
                     "duration": 5,
                     "attenuation_value": 45,
                     "attenuation_durations": [300, 0, 0],
@@ -71,6 +71,13 @@ CHECK_CUN_DATA = dict(last_his_number="12345678", symptoms_started_on="2020-12-2
 
 CHECK_CUN_DATA_NOT_REQUIRED = dict(last_his_number="12345678")
 
+GET_DGC_DATA = dict(
+    padding="4dd1",
+    last_his_number="12345678",
+    his_expiring_date=date.today().isoformat(),
+    token_type="authcode",
+)
+
 CONTENT_TYPE_HEADER = {"Content-Type": "application/json; charset=UTF-8"}
 
 
@@ -87,6 +94,11 @@ def check_cun_data() -> Dict:
 @pytest.fixture
 def check_cun_data_not_required() -> Dict:
     return deepcopy(CHECK_CUN_DATA_NOT_REQUIRED)
+
+
+@pytest.fixture
+def get_dgc_data() -> Dict:
+    return deepcopy(GET_DGC_DATA)
 
 
 @pytest.fixture
@@ -198,7 +210,13 @@ async def test_upload_bad_request_dummy_header(
 
 
 @pytest.mark.parametrize(
-    "endpoint", ["/v1/ingestion/upload", "/v1/ingestion/check-otp", "/v1/ingestion/check-cun"]
+    "endpoint",
+    [
+        "/v1/ingestion/upload",
+        "/v1/ingestion/check-otp",
+        "/v1/ingestion/check-cun",
+        "/v1/ingestion/get-dgc",
+    ],
 )
 @pytest.mark.parametrize("token", ["asd", "12345", "abcdefghijklmnopqrstuvwxy"])
 async def test_bad_auth_token_raises_validation_error(
@@ -510,6 +528,80 @@ async def test_invalid_last_his_numbers_no_symptoms(
     response = await client.post(
         "/v1/ingestion/check-cun", json=check_cun_data_not_required, headers=headers
     )
+    assert response.status == 400
+    data = await response.json()
+    assert data["message"] == "Request not compliant with the defined schema."
+
+
+@pytest.mark.parametrize("token_type", ["OTP", "cunf", "123", "e78"])
+async def test_dummy_data_get_dgc_token_type_fail(
+    client: TestClient, auth_headers: Dict[str, str], get_dgc_data: Dict, token_type: str
+) -> None:
+    # auth_headers["Immuni-Dummy-Data"] = "1"
+    auth_headers.update(CONTENT_TYPE_HEADER)
+    get_dgc_data["token_type"] = token_type
+    response = await client.post("/v1/ingestion/get-dgc", json=get_dgc_data, headers=auth_headers,)
+
+    assert response.status == 400
+    data = await response.json()
+    assert data["message"] == SchemaValidationException.error_message
+
+
+async def test_dummy_data_get_dgc_success(client: TestClient, auth_headers: Dict[str, str]) -> None:
+    auth_headers["Immuni-Dummy-Data"] = "1"
+    auth_headers.update(CONTENT_TYPE_HEADER)
+    with patch("immuni_common.helpers.sanic.weighted_random", side_effect=lambda x: x[1].payload):
+        response = await client.post(
+            "/v1/ingestion/get-dgc",
+            json=dict(
+                padding="4dd1",
+                last_his_number="12345678",
+                his_expiring_date=date.today().isoformat(),
+                token_type="authcode",
+            ),
+            headers=auth_headers,
+        )
+    assert response.status == 200
+
+
+async def test_dummy_data_get_dgc_fail(client: TestClient, auth_headers: Dict[str, str]) -> None:
+    auth_headers["Immuni-Dummy-Data"] = "1"
+    auth_headers.update(CONTENT_TYPE_HEADER)
+    with patch("immuni_common.helpers.sanic.weighted_random", side_effect=lambda x: x[0].payload):
+        response = await client.post(
+            "/v1/ingestion/get-dgc",
+            json=dict(
+                padding="4dd1",
+                last_his_number="12345678",
+                his_expiring_date=date.today().isoformat(),
+                token_type="authcode",
+            ),
+            headers=auth_headers,
+        )
+    assert response.status == 401
+    data = await response.json()
+    assert data["message"] == UnauthorizedOtpException.error_message
+
+
+@pytest.mark.parametrize("his_expiring_date", ["02-02-2021", "2021/01/03", "aga87902"])
+async def test_invalid_his_expiring_date(
+    client: TestClient, get_dgc_data: Dict, his_expiring_date: date, headers: Dict[str, str]
+) -> None:
+    get_dgc_data["his_expiring_date"] = his_expiring_date
+    headers.update(CONTENT_TYPE_HEADER)
+    response = await client.post("/v1/ingestion/get-dgc", json=get_dgc_data, headers=headers)
+    assert response.status == 400
+    data = await response.json()
+    assert data["message"] == "Request not compliant with the defined schema."
+
+
+@pytest.mark.parametrize("last_his_number", ["1234", "abcde", "13A45dS8"])
+async def test_invalid_last_his_numbers_dgc(
+    client: TestClient, get_dgc_data: Dict, last_his_number: str, headers: Dict[str, str],
+) -> None:
+    get_dgc_data["last_his_number"] = last_his_number
+    headers.update(CONTENT_TYPE_HEADER)
+    response = await client.post("/v1/ingestion/get-dgc", json=get_dgc_data, headers=headers)
     assert response.status == 400
     data = await response.json()
     assert data["message"] == "Request not compliant with the defined schema."

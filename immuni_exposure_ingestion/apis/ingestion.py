@@ -10,7 +10,6 @@
 #    GNU Affero General Public License for more details.
 #    You should have received a copy of the GNU Affero General Public License
 #    along with this program. If not, see <https://www.gnu.org/licenses/>.
-
 import logging
 from datetime import date, datetime
 from http import HTTPStatus
@@ -25,17 +24,18 @@ from sanic_openapi import doc
 
 from immuni_common.core.exceptions import (
     ApiException,
+    DgcNotFoundException,
     OtpCollisionException,
     SchemaValidationException,
     UnauthorizedOtpException,
 )
 from immuni_common.helpers.cache import cache
-from immuni_common.helpers.sanic import handle_dummy_requests, validate
+from immuni_common.helpers.sanic import handle_dummy_requests, json_response, validate
 from immuni_common.helpers.swagger import doc_exception
 from immuni_common.helpers.utils import WeightedPayload
 from immuni_common.models.dataclasses import ExposureDetectionSummary
-from immuni_common.models.enums import Location
-from immuni_common.models.marshmallow.fields import Countries, LastHisNumber, Province
+from immuni_common.models.enums import Location, TokenType
+from immuni_common.models.marshmallow.fields import Countries, EnumField, LastHisNumber, Province
 from immuni_common.models.marshmallow.schemas import (
     ExposureDetectionSummarySchema,
     TemporaryExposureKeySchema,
@@ -46,12 +46,18 @@ from immuni_common.models.swagger import HeaderImmuniContentTypeJson
 from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.helpers.api import validate_otp_token
 from immuni_exposure_ingestion.helpers.exposure_data import store_exposure_detection_summaries
-from immuni_exposure_ingestion.helpers.his_external_service import invalidate_cun, verify_cun
+from immuni_exposure_ingestion.helpers.his_external_service import (
+    invalidate_cun,
+    retrieve_dgc,
+    verify_cun,
+)
 from immuni_exposure_ingestion.helpers.otp_internal_service import enable_otp
 from immuni_exposure_ingestion.helpers.upload import slow_down_request, validate_token_format
 from immuni_exposure_ingestion.models.swagger import (
     CheckCun,
     CheckOtp,
+    DcgResponse,
+    GetDcg,
     HeaderImmuniAuthorizationOtpSha,
     HeaderImmuniClientClock,
     HeaderImmuniDummyData,
@@ -63,6 +69,7 @@ from immuni_exposure_ingestion.monitoring.api import SUMMARIES_PROCESSED
 from immuni_exposure_ingestion.monitoring.helpers import (
     monitor_check_cun,
     monitor_check_otp,
+    monitor_get_dgc,
     monitor_upload,
 )
 
@@ -316,3 +323,76 @@ async def check_cun(
         pass
 
     return HTTPResponse(status=HTTPStatus.NO_CONTENT.value)
+
+
+@bp.route("/get-dgc", version=1, methods=["POST"])
+@doc.summary("Get DGC (caller: Mobile Client).")
+@doc.description(
+    "The Mobile Client validates the auth code, the last 8 char and the expiring date "
+    "of the HIS card to retrieve the Digital Green Certificate in a QR Code format."
+    "Using the dedicated request header, the Mobile Client can indicate to the server that the "
+    "call it is making is a dummy one. "
+    "The server will ignore the content of such calls."
+)
+@doc.consumes(
+    GetDcg, location="body", required=True, content_type="application/json; charset=utf-8"
+)
+@doc.consumes(HeaderImmuniDummyData(), location="header", required=True)
+@doc.consumes(HeaderImmuniContentTypeJson(), location="header", required=True)
+@doc.consumes(HeaderImmuniAuthorizationOtpSha(), location="header", required=True)
+@doc_exception(SchemaValidationException)
+@doc_exception(DgcNotFoundException)
+@doc_exception(ApiException)
+@doc.response(
+    HTTPStatus.OK.value, DcgResponse, description="QR Code successfully retrieved.",
+)
+@validate(
+    location=Location.JSON,
+    last_his_number=LastHisNumber(),
+    his_expiring_date=fields.Date(required=True, format="%Y-%m-%d"),
+    token_type=EnumField(enum=TokenType),
+    padding=fields.String(validate=Regexp(rf"^[a-f0-9]{{0,{config.MAX_PADDING_SIZE}}}$")),
+)
+@validate_token_format
+@slow_down_request
+@cache(no_store=True)
+@monitor_get_dgc
+# Dummy requests are currently being filtered at the reverse proxy level, emulating the same
+# behavior implemented below and introducing a response delay.
+# This may be re-evaluated in the future.
+@handle_dummy_requests(
+    [
+        WeightedPayload(config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT, UnauthorizedOtpException(),),
+        WeightedPayload(
+            100 - config.DUMMY_DATA_TOKEN_ERROR_CHANCE_PERCENT,
+            HTTPResponse(status=HTTPStatus.OK.value),
+        ),
+    ]
+)
+async def get_dgc(
+    request: Request,
+    last_his_number: str,
+    his_expiring_date: date,
+    token_type: TokenType,
+    padding: str,
+) -> HTTPResponse:
+    """
+    Check the sha256 token, the last 8 numbers and the expiration date of the HIS card via the
+    external PN-DGC service to allow the citizen to recover their DGC.
+
+    :param last_his_number: the last 8 numbers of the HIS card.
+    :param his_expiring_date: the expiration date of the HIS card.
+    :param token_type: the type of the token sent by the mobile caller.
+    :param request: the HTTP request object.
+    :param padding: the dummy data sent to protect against analysis of the traffic size.
+    :return: 200 if DGC successfully retrieved, 400 on SchemaValidationException,
+    404 if DGC not found.
+    """
+    dgc_response = retrieve_dgc(
+        token_code_sha=request.token,
+        last_his_number=last_his_number,
+        his_expiring_date=his_expiring_date,
+        token_type=token_type.value,
+    )
+
+    return json_response(body=dgc_response, status=HTTPStatus.OK)
