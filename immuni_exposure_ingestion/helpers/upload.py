@@ -34,7 +34,7 @@ def validate_token_format(f: Callable) -> Callable:
 
     @wraps(f)
     def _wrapper(request: Request, *args: Any, **kwargs: Any) -> Any:
-        if request.token is None or not re.match(r"^[A-Fa-f0-9]{64}$", request.token):
+        if request.token is None or not re.match(r"^[A-Za-z0-9]{64}$", request.token):
             raise SchemaValidationException()
 
         return f(request, *args, **kwargs)
