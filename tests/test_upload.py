@@ -21,18 +21,18 @@ from typing import Dict, Optional, Tuple
 from unittest.mock import patch
 
 import pytest
-from pytest_sanic.utils import TestClient
-
-from immuni_common.core.exceptions import SchemaValidationException, UnauthorizedOtpException
-from immuni_common.helpers.otp import key_for_otp_sha
-from immuni_common.helpers.tests import mock_config
-from immuni_common.models.dataclasses import OtpData
 from immuni_exposure_ingestion.core import config
 from immuni_exposure_ingestion.core.managers import managers
 from immuni_exposure_ingestion.helpers.temporary_exposure_key import (
     today_midnight_rolling_start_number,
 )
 from immuni_exposure_ingestion.models.upload import Upload
+from pytest_sanic.utils import TestClient
+
+from immuni_common.core.exceptions import SchemaValidationException, UnauthorizedOtpException
+from immuni_common.helpers.otp import key_for_otp_sha
+from immuni_common.helpers.tests import mock_config
+from immuni_common.models.dataclasses import OtpData
 from tests.fixtures.upload import generate_random_key_data
 
 UPLOAD_DATA = dict(
@@ -47,7 +47,7 @@ UPLOAD_DATA = dict(
             "maximum_risk_score": 4,
             "exposure_info": [
                 {
-                    "date": (date.today()-timedelta(15)).isoformat(),
+                    "date": (date.today() - timedelta(15)).isoformat(),
                     "duration": 5,
                     "attenuation_value": 45,
                     "attenuation_durations": [300, 0, 0],
