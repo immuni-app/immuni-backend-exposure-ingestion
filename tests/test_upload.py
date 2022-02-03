@@ -47,7 +47,7 @@ UPLOAD_DATA = dict(
             "maximum_risk_score": 4,
             "exposure_info": [
                 {
-                    "date": "2021-05-16",
+                    "date": (date.today()-timedelta(15)).isoformat(),
                     "duration": 5,
                     "attenuation_value": 45,
                     "attenuation_durations": [300, 0, 0],
