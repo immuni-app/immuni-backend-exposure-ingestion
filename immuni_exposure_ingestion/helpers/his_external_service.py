@@ -190,7 +190,7 @@ def retrieve_dgc(
         raise ApiException
     if not json_response["data"]["qrcode"]:
         raise ApiException
-    if not json_response["data"]["fglTipoDgc"]:    
+    if "fglTipoDgc" not in json_response["data"] or not json_response["data"]["fglTipoDgc"]:    
         return {"qrcode": json_response["data"]["qrcode"]}
     else:
       return {"qrcode": json_response["data"]["qrcode"], "fglTipoDgc": json_response["data"]["fglTipoDgc"]}
