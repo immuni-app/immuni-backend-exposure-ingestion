@@ -293,7 +293,7 @@ def test_retrieve_api_exception4() -> None:
             assert e
 
 
-def test_retrieve_dgc_success() -> None:
+def test_retrieve_dgc_with_cbis_success() -> None:
     with config_set("DGC_EXTERNAL_URL", "example.com"), mock_retrieve_dgc_with_cbis_success():
         response = retrieve_dgc(
             token_code_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
@@ -304,7 +304,7 @@ def test_retrieve_dgc_success() -> None:
         assert response
 
 
-def test_retrieve_no_dgc_exception() -> None:
+def test_retrieve_no_dgc_with_cbis_exception() -> None:
     with config_set("DGC_EXTERNAL_URL", "example.com"), mock_retrieve_dgc_with_cbis_not_found():
         try:
             retrieve_dgc(
