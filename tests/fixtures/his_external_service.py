@@ -581,7 +581,54 @@ def mock_retrieve_dgc_api_exception4() -> Iterator[None]:
         mock_requests.add(
             responses.GET,
             url,
-            body=json.dumps({"data": {"qrcode": "prova"}}),
+            body=json.dumps({"data": {"qrcode": "prova","fglTipoDgc": "string"}}),
+            status=status_code,
+            content_type="application/json",
+            match_querystring=False,
+        )
+
+        yield
+
+@contextmanager
+def mock_retrieve_dgc_with_cbis_success() -> Iterator[None]:
+    with responses.RequestsMock() as mock_requests:
+        base_url = f"https://{config.DGC_EXTERNAL_URL}"
+        params = dict(
+            mode="ONLY_QRCODE",
+            healthInsuranceCardNumber="14345698",
+            healthInsuranceCardDate=date.today().isoformat(),
+            authCodeSHA256=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+        )
+        url = f"{base_url}?{urlencode(params)}"
+        status_code = 200
+
+        mock_requests.add(
+            responses.GET,
+            url,
+            body=json.dumps({"data": {"qrcode": "string","fglTipoDgc": "string"}}),
+            status=status_code,
+            content_type="application/json",
+            match_querystring=False,
+        )
+
+        yield
+
+@contextmanager
+def mock_retrieve_dgc_with_cbis_not_found() -> Iterator[None]:
+    with responses.RequestsMock() as mock_requests:
+        base_url = f"https://{config.DGC_EXTERNAL_URL}"
+        params = dict(
+            mode="ONLY_QRCODE",
+            healthInsuranceCardNumber="14345698",
+            healthInsuranceCardDate=date.today().isoformat(),
+            authCodeSHA256=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+        )
+        url = f"{base_url}?{urlencode(params)}"
+        status_code = 404
+
+        mock_requests.add(
+            responses.GET,
+            url,
             status=status_code,
             content_type="application/json",
             match_querystring=False,
