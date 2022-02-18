@@ -46,6 +46,8 @@ from tests.fixtures.his_external_service import (
     mock_retrieve_dgc_no_authcode_success,
     mock_retrieve_dgc_not_found,
     mock_retrieve_dgc_success,
+    mock_retrieve_dgc_with_cbis_success,
+    mock_retrieve_dgc_with_cbis_not_found,
 )
 
 
@@ -288,4 +290,28 @@ def test_retrieve_api_exception4() -> None:
                 token_type="authcode",
             )
         except ApiException as e:
+            assert e
+
+
+def test_retrieve_dgc_with_cbis_success() -> None:
+    with config_set("DGC_EXTERNAL_URL", "example.com"), mock_retrieve_dgc_with_cbis_success():
+        response = retrieve_dgc(
+            token_code_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+            last_his_number="12345678",
+            his_expiring_date=date.today(),
+            token_type="authcode",
+        )
+        assert response
+
+
+def test_retrieve_no_dgc_with_cbis_exception() -> None:
+    with config_set("DGC_EXTERNAL_URL", "example.com"), mock_retrieve_dgc_with_cbis_not_found():
+        try:
+            retrieve_dgc(
+                token_code_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                last_his_number="12345678",
+                his_expiring_date=date.today(),
+                token_type="authcode",
+            )
+        except DgcNotFoundException as e:
             assert e
