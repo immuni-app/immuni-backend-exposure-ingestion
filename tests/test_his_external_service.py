@@ -47,16 +47,19 @@ from tests.fixtures.his_external_service import (
     mock_retrieve_dgc_not_found,
     mock_retrieve_dgc_success,
     mock_retrieve_dgc_with_cbis_success,
-    mock_retrieve_dgc_with_cbis_not_found
+    mock_retrieve_dgc_with_cbis_not_found,
 )
 
 
 def test_his_external_service() -> None:
-    with config_set("HIS_VERIFY_EXTERNAL_URL", "example.com"), mock_external_his_service_success(
+    with config_set(
+        "HIS_VERIFY_EXTERNAL_URL", "example.com"
+    ), mock_external_his_service_success(
         expected_content="2d8af3b9-2c0a-4efc-9e15-72454f994e1f"
     ):
         json_response = verify_cun(
-            cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(), last_his_number="12345678"
+            cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+            last_his_number="12345678",
         )
         assert json_response
 
@@ -81,7 +84,8 @@ def test_his_external_service_unauthorized_otp() -> None:
     ):
         try:
             verify_cun(
-                cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(), last_his_number="12345678"
+                cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                last_his_number="12345678",
             )
         except UnauthorizedOtpException as e:
             assert e
@@ -95,7 +99,8 @@ def test_his_external_service_otp_collision() -> None:
     ):
         try:
             verify_cun(
-                cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(), last_his_number="12345678"
+                cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                last_his_number="12345678",
             )
         except OtpCollisionException as e:
             assert e
@@ -109,7 +114,8 @@ def test_his_external_service_api_exception() -> None:
     ):
         try:
             verify_cun(
-                cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(), last_his_number="12345678"
+                cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                last_his_number="12345678",
             )
         except ApiException as e:
             assert e
@@ -123,7 +129,8 @@ def test_his_external_service_missing_dict_values() -> None:
     ):
         try:
             verify_cun(
-                cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(), last_his_number="12345678"
+                cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                last_his_number="12345678",
             )
         except UnauthorizedOtpException as e:
             assert e
@@ -137,7 +144,8 @@ def test_his_external_service_missing_dict_keys() -> None:
     ):
         try:
             verify_cun(
-                cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(), last_his_number="12345678"
+                cun_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
+                last_his_number="12345678",
             )
         except UnauthorizedOtpException as e:
             assert e
@@ -218,7 +226,9 @@ def test_retrieve_dgc_success() -> None:
 
 
 def test_retrieve_dgc_no_authcode_success() -> None:
-    with config_set("DGC_EXTERNAL_URL", "example.com"), mock_retrieve_dgc_no_authcode_success():
+    with config_set(
+        "DGC_EXTERNAL_URL", "example.com"
+    ), mock_retrieve_dgc_no_authcode_success():
         response = retrieve_dgc(
             token_code_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
             last_his_number="12345678",
@@ -242,7 +252,9 @@ def test_retrieve_no_dgc_exception() -> None:
 
 
 def test_retrieve_api_exception1() -> None:
-    with config_set("DGC_EXTERNAL_URL", "example.com"), mock_retrieve_dgc_api_exception1():
+    with config_set(
+        "DGC_EXTERNAL_URL", "example.com"
+    ), mock_retrieve_dgc_api_exception1():
         try:
             retrieve_dgc(
                 token_code_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
@@ -255,7 +267,9 @@ def test_retrieve_api_exception1() -> None:
 
 
 def test_retrieve_api_exception2() -> None:
-    with config_set("DGC_EXTERNAL_URL", "example.com"), mock_retrieve_dgc_api_exception2():
+    with config_set(
+        "DGC_EXTERNAL_URL", "example.com"
+    ), mock_retrieve_dgc_api_exception2():
         try:
             retrieve_dgc(
                 token_code_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
@@ -268,7 +282,9 @@ def test_retrieve_api_exception2() -> None:
 
 
 def test_retrieve_api_exception3() -> None:
-    with config_set("DGC_EXTERNAL_URL", "example.com"), mock_retrieve_dgc_api_exception3():
+    with config_set(
+        "DGC_EXTERNAL_URL", "example.com"
+    ), mock_retrieve_dgc_api_exception3():
         try:
             retrieve_dgc(
                 token_code_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
@@ -281,7 +297,9 @@ def test_retrieve_api_exception3() -> None:
 
 
 def test_retrieve_api_exception4() -> None:
-    with config_set("DGC_EXTERNAL_URL", "example.com"), mock_retrieve_dgc_api_exception4():
+    with config_set(
+        "DGC_EXTERNAL_URL", "example.com"
+    ), mock_retrieve_dgc_api_exception4():
         try:
             retrieve_dgc(
                 token_code_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
@@ -294,7 +312,9 @@ def test_retrieve_api_exception4() -> None:
 
 
 def test_retrieve_dgc_success() -> None:
-    with config_set("DGC_EXTERNAL_URL", "example.com"), mock_retrieve_dgc_with_cbis_success():
+    with config_set(
+        "DGC_EXTERNAL_URL", "example.com"
+    ), mock_retrieve_dgc_with_cbis_success():
         response = retrieve_dgc(
             token_code_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),
             last_his_number="12345678",
@@ -305,7 +325,9 @@ def test_retrieve_dgc_success() -> None:
 
 
 def test_retrieve_no_dgc_exception() -> None:
-    with config_set("DGC_EXTERNAL_URL", "example.com"), mock_retrieve_dgc_with_cbis_not_found():
+    with config_set(
+        "DGC_EXTERNAL_URL", "example.com"
+    ), mock_retrieve_dgc_with_cbis_not_found():
         try:
             retrieve_dgc(
                 token_code_sha=sha256("59FU36KR46".encode("utf-8")).hexdigest(),

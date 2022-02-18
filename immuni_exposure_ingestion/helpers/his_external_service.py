@@ -46,8 +46,7 @@ def verify_cun(cun_sha: str, last_his_number: str) -> dict:
 
     body = dict(cun=cun_sha, last_his_number=last_his_number)
 
-    _LOGGER.info(
-        "Requesting validation with external HIS service.", extra=body)
+    _LOGGER.info("Requesting validation with external HIS service.", extra=body)
 
     response = requests.post(
         remote_url,
@@ -57,13 +56,19 @@ def verify_cun(cun_sha: str, last_his_number: str) -> dict:
     )
 
     if response.status_code == 400:
-        _LOGGER.info("Response 400 received from external service.",)
+        _LOGGER.info(
+            "Response 400 received from external service.",
+        )
         raise SchemaValidationException
     if response.status_code == 401:
-        _LOGGER.info("Response 401 received from external service.",)
+        _LOGGER.info(
+            "Response 401 received from external service.",
+        )
         raise UnauthorizedOtpException
     if response.status_code == 409:
-        _LOGGER.info("Response 409 received from external service.",)
+        _LOGGER.info(
+            "Response 409 received from external service.",
+        )
         raise OtpCollisionException
 
     try:
@@ -73,8 +78,7 @@ def verify_cun(cun_sha: str, last_his_number: str) -> dict:
         raise ApiException from msg_error
 
     json_response = response.json()
-    _LOGGER.info("Response received from external service.",
-                 extra=json_response)
+    _LOGGER.info("Response received from external service.", extra=json_response)
 
     if "id_test_verification" not in json_response or "date_test" not in json_response:
         raise UnauthorizedOtpException
@@ -98,8 +102,7 @@ def invalidate_cun(cun_sha: str, id_test_verification: str) -> bool:
 
     body = dict(cun=cun_sha, id_test_verification=id_test_verification)
 
-    _LOGGER.info(
-        "Requesting invalidation with external HIS service.", extra=body)
+    _LOGGER.info("Requesting invalidation with external HIS service.", extra=body)
 
     response = requests.post(
         remote_url,
@@ -108,13 +111,19 @@ def invalidate_cun(cun_sha: str, id_test_verification: str) -> bool:
         cert=config.HIS_SERVICE_CERTIFICATE,
     )
     if response.status_code == 400:
-        _LOGGER.info("Response 400 received from external service.",)
+        _LOGGER.info(
+            "Response 400 received from external service.",
+        )
         raise SchemaValidationException
     if response.status_code == 401:
-        _LOGGER.info("Response 401 received from external service.",)
+        _LOGGER.info(
+            "Response 401 received from external service.",
+        )
         raise UnauthorizedOtpException
     if response.status_code == 409:
-        _LOGGER.info("Response 409 received from external service.",)
+        _LOGGER.info(
+            "Response 409 received from external service.",
+        )
         raise OtpCollisionException
 
     try:
@@ -124,8 +133,7 @@ def invalidate_cun(cun_sha: str, id_test_verification: str) -> bool:
         raise ApiException from msg_error
 
     json_response = response.json()
-    _LOGGER.info("Response received from external service.",
-                 extra=json_response)
+    _LOGGER.info("Response received from external service.", extra=json_response)
 
     return True
 
@@ -159,7 +167,9 @@ def retrieve_dgc(
         params["authCodeSHA256"] = token_code_sha
 
     _LOGGER.info(
-        "Retrieving Digital Green Certificate with external PN-DGC service.", extra=params)
+        "Retrieving Digital Green Certificate with external PN-DGC service.",
+        extra=params,
+    )
 
     response = requests.get(
         remote_url,
@@ -170,11 +180,13 @@ def retrieve_dgc(
 
     if response.status_code == 400:
         _LOGGER.info(
-            "Response 400 received from PN-DGC external service.", extra=params)
+            "Response 400 received from PN-DGC external service.", extra=params
+        )
         raise ApiException
     if response.status_code == 404:
         _LOGGER.info(
-            "Response 404 received from PN-DGC external service.", extra=params)
+            "Response 404 received from PN-DGC external service.", extra=params
+        )
         raise DgcNotFoundException
 
     try:
@@ -190,7 +202,13 @@ def retrieve_dgc(
         raise ApiException
     if not json_response["data"]["qrcode"]:
         raise ApiException
-    if "fglTipoDgc" not in json_response["data"] or not json_response["data"]["fglTipoDgc"]:    
+    if (
+        "fglTipoDgc" not in json_response["data"]
+        or not json_response["data"]["fglTipoDgc"]
+    ):
         return {"qrcode": json_response["data"]["qrcode"]}
     else:
-      return {"qrcode": json_response["data"]["qrcode"], "fglTipoDgc": json_response["data"]["fglTipoDgc"]}
+        return {
+            "qrcode": json_response["data"]["qrcode"],
+            "fglTipoDgc": json_response["data"]["fglTipoDgc"],
+        }

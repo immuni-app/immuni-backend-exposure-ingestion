@@ -25,7 +25,9 @@ from immuni_exposure_ingestion.core import config
 
 
 @contextmanager
-def mock_external_his_service_success(expected_content: Optional[str] = None) -> Iterator[None]:
+def mock_external_his_service_success(
+    expected_content: Optional[str] = None,
+) -> Iterator[None]:
     with responses.RequestsMock() as mock_requests:
 
         def request_callback(request: PreparedRequest) -> Tuple[int, Dict, str]:
@@ -80,7 +82,10 @@ def mock_external_his_service_schema_validation(
                 400,
                 {},
                 json.dumps(
-                    dict(response_code=400, id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+                    dict(
+                        response_code=400,
+                        id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+                    )
                 ),
             )
 
@@ -114,7 +119,10 @@ def mock_external_his_service_unauthorized_otp(
                 401,
                 {},
                 json.dumps(
-                    dict(response_code=401, id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+                    dict(
+                        response_code=401,
+                        id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+                    )
                 ),
             )
 
@@ -148,7 +156,10 @@ def mock_external_his_service_otp_collision(
                 409,
                 {},
                 json.dumps(
-                    dict(response_code=409, id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+                    dict(
+                        response_code=409,
+                        id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+                    )
                 ),
             )
 
@@ -181,7 +192,10 @@ def mock_external_his_service_api_exception(
                 500,
                 {},
                 json.dumps(
-                    dict(response_code=500, id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+                    dict(
+                        response_code=500,
+                        id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+                    )
                 ),
             )
 
@@ -250,7 +264,11 @@ def mock_external_his_service_missing_dict_keys(
             return (
                 200,
                 {},
-                json.dumps(dict(id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",)),
+                json.dumps(
+                    dict(
+                        id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+                    )
+                ),
             )
 
         mock_requests.add_callback(
@@ -280,7 +298,10 @@ def mock_invalidate_external_his_service_success() -> Iterator[None]:
                 200,
                 {},
                 json.dumps(
-                    dict(response_code=200, id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+                    dict(
+                        response_code=200,
+                        id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+                    )
                 ),
             )
 
@@ -311,7 +332,10 @@ def mock_invalidate_external_his_service_schema_validation() -> Iterator[None]:
                 400,
                 {},
                 json.dumps(
-                    dict(response_code=400, id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+                    dict(
+                        response_code=400,
+                        id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+                    )
                 ),
             )
 
@@ -342,7 +366,10 @@ def mock_invalidate_external_his_service_unauthorized_otp() -> Iterator[None]:
                 401,
                 {},
                 json.dumps(
-                    dict(response_code=401, id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+                    dict(
+                        response_code=401,
+                        id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+                    )
                 ),
             )
 
@@ -373,7 +400,10 @@ def mock_invalidate_external_his_service_otp_collision() -> Iterator[None]:
                 409,
                 {},
                 json.dumps(
-                    dict(response_code=409, id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+                    dict(
+                        response_code=409,
+                        id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+                    )
                 ),
             )
 
@@ -403,7 +433,10 @@ def mock_invalidate_external_his_service_api_exception() -> Iterator[None]:
                 500,
                 {},
                 json.dumps(
-                    dict(response_code=500, id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f")
+                    dict(
+                        response_code=500,
+                        id_transaction="2d8af3b9-2c0a-4efc-9e15-72454f994e1f",
+                    )
                 ),
             )
 
@@ -581,13 +614,14 @@ def mock_retrieve_dgc_api_exception4() -> Iterator[None]:
         mock_requests.add(
             responses.GET,
             url,
-            body=json.dumps({"data": {"qrcode": "prova","fglTipoDgc": "string"}}),
+            body=json.dumps({"data": {"qrcode": "prova", "fglTipoDgc": "string"}}),
             status=status_code,
             content_type="application/json",
             match_querystring=False,
         )
 
         yield
+
 
 @contextmanager
 def mock_retrieve_dgc_with_cbis_success() -> Iterator[None]:
@@ -605,13 +639,14 @@ def mock_retrieve_dgc_with_cbis_success() -> Iterator[None]:
         mock_requests.add(
             responses.GET,
             url,
-            body=json.dumps({"data": {"qrcode": "string","fglTipoDgc": "string"}}),
+            body=json.dumps({"data": {"qrcode": "string", "fglTipoDgc": "string"}}),
             status=status_code,
             content_type="application/json",
             match_querystring=False,
         )
 
         yield
+
 
 @contextmanager
 def mock_retrieve_dgc_with_cbis_not_found() -> Iterator[None]:
