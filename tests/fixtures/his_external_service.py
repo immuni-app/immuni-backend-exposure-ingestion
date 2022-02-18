@@ -581,13 +581,14 @@ def mock_retrieve_dgc_api_exception4() -> Iterator[None]:
         mock_requests.add(
             responses.GET,
             url,
-            body=json.dumps({"data": {"qrcode": "prova","fglTipoDgc": "string"}}),
+            body=json.dumps({"data": {"qrcode": "prova", "fglTipoDgc": "string"}}),
             status=status_code,
             content_type="application/json",
             match_querystring=False,
         )
 
         yield
+
 
 @contextmanager
 def mock_retrieve_dgc_with_cbis_success() -> Iterator[None]:
@@ -605,13 +606,14 @@ def mock_retrieve_dgc_with_cbis_success() -> Iterator[None]:
         mock_requests.add(
             responses.GET,
             url,
-            body=json.dumps({"data": {"qrcode": "string","fglTipoDgc": "string"}}),
+            body=json.dumps({"data": {"qrcode": "string", "fglTipoDgc": "string"}}),
             status=status_code,
             content_type="application/json",
             match_querystring=False,
         )
 
         yield
+
 
 @contextmanager
 def mock_retrieve_dgc_with_cbis_not_found() -> Iterator[None]:

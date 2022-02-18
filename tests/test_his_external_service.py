@@ -47,7 +47,7 @@ from tests.fixtures.his_external_service import (
     mock_retrieve_dgc_not_found,
     mock_retrieve_dgc_success,
     mock_retrieve_dgc_with_cbis_success,
-    mock_retrieve_dgc_with_cbis_not_found
+    mock_retrieve_dgc_with_cbis_not_found,
 )
 
 
